@@ -1,0 +1,205 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import {
+  Microphone,
+  MicrophoneSlash,
+  VideoCamera,
+  VideoCameraSlash,
+  PhoneDisconnect,
+  SpeakerHigh,
+  SpeakerSlash,
+} from "@phosphor-icons/react";
+import { useSessionBilling } from "@/lib/useSessionBilling";
+import { Mentor, SessionRecord } from "@/lib/types";
+
+export default function CallSession({
+  session,
+  mentor,
+}: {
+  session: SessionRecord;
+  mentor: Mentor;
+}) {
+  const router = useRouter();
+  const isVideo = session.mode === "video";
+  const { elapsedSeconds, charged, ended, showLowBalance, endNow } = useSessionBilling(
+    session,
+    mentor
+  );
+
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [micOn, setMicOn] = useState(true);
+  const [cameraOn, setCameraOn] = useState(isVideo);
+  const [speakerOn, setSpeakerOn] = useState(true);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    navigator.mediaDevices
+      ?.getUserMedia({ audio: true, video: isVideo })
+      .then((stream) => {
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMediaError(
+            isVideo
+              ? "Camera/mic access was blocked — you can still stay on the call, but the mentor won't see or hear you."
+              : "Mic access was blocked — you can still stay on the call, but the mentor won't hear you."
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, [isVideo]);
+
+  const toggleMic = () => {
+    setMicOn((on) => {
+      streamRef.current?.getAudioTracks().forEach((t) => (t.enabled = !on));
+      return !on;
+    });
+  };
+
+  const toggleCamera = () => {
+    setCameraOn((on) => {
+      streamRef.current?.getVideoTracks().forEach((t) => (t.enabled = !on));
+      return !on;
+    });
+  };
+
+  const handleEnd = () => {
+    endNow();
+    router.push(`/session/${session.id}/rate`);
+  };
+
+  const minutes = Math.floor(elapsedSeconds / 60);
+  const secs = elapsedSeconds % 60;
+  const mentorVideo = mentor.videos[0];
+
+  return (
+    <div className="relative flex min-h-screen flex-col bg-black text-white">
+      {/* "Mentor" side — simulated: their intro clip standing in for a live
+          feed since there's no real signaling server behind this demo. */}
+      <div className="absolute inset-0">
+        {isVideo && mentorVideo ? (
+          <video
+            src={mentorVideo}
+            className="h-full w-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-dusk-900">
+            <div className="relative h-32 w-32 overflow-hidden rounded-full ring-4 ring-white/10">
+              <Image src={mentor.photoUrl} alt={mentor.name} fill className="object-cover" />
+            </div>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/70" />
+      </div>
+
+      <div className="relative flex items-center justify-between px-5 pt-6">
+        <div>
+          <p className="font-display text-[20px]">{mentor.name}</p>
+          <p className="text-[13px] text-white/70">
+            {minutes}:{secs.toString().padStart(2, "0")} · {charged} coins used
+          </p>
+        </div>
+        <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium">
+          {isVideo ? "Video call" : "Audio call"}
+        </span>
+      </div>
+
+      {mediaError && (
+        <div className="relative mx-5 mt-4 rounded-xl2 bg-white/10 p-3 text-center text-[12px] text-white/90">
+          {mediaError}
+        </div>
+      )}
+
+      {ended && (
+        <div className="relative mx-5 mt-4 rounded-xl2 bg-white/15 p-3 text-center text-[13px]">
+          Your balance ran out, so we ended the call here.
+          <button
+            onClick={() => router.push(`/session/${session.id}/rate`)}
+            className="tap-target mt-2 block w-full rounded-full bg-warmth-500 py-2 text-[13px] font-medium text-white"
+          >
+            Rate this conversation
+          </button>
+        </div>
+      )}
+
+      {showLowBalance && !ended && (
+        <div className="relative mx-5 mt-4 flex items-center justify-between rounded-xl2 bg-white/15 p-3">
+          <span className="text-[13px]">Running low — want a few more minutes?</span>
+          <button
+            onClick={() => router.push("/wallet")}
+            className="tap-target rounded-full bg-warmth-500 px-3 py-1.5 text-[12px] font-medium text-white"
+          >
+            Top up
+          </button>
+        </div>
+      )}
+
+      {/* Self view */}
+      {isVideo && (
+        <div className="absolute right-5 top-32 h-36 w-24 overflow-hidden rounded-xl2 bg-dusk-900 shadow-warm">
+          {cameraOn ? (
+            <video ref={localVideoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <VideoCameraSlash size={20} className="text-white/60" />
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="relative mt-auto flex items-center justify-center gap-5 px-5 pb-[max(28px,env(safe-area-inset-bottom))] pt-6">
+        <button
+          onClick={toggleMic}
+          className="tap-target flex h-14 w-14 items-center justify-center rounded-full bg-white/15"
+          aria-label={micOn ? "Mute microphone" : "Unmute microphone"}
+        >
+          {micOn ? <Microphone size={22} /> : <MicrophoneSlash size={22} />}
+        </button>
+
+        {isVideo && (
+          <button
+            onClick={toggleCamera}
+            className="tap-target flex h-14 w-14 items-center justify-center rounded-full bg-white/15"
+            aria-label={cameraOn ? "Turn camera off" : "Turn camera on"}
+          >
+            {cameraOn ? <VideoCamera size={22} /> : <VideoCameraSlash size={22} />}
+          </button>
+        )}
+
+        <button
+          onClick={handleEnd}
+          className="tap-target flex h-16 w-16 items-center justify-center rounded-full bg-warmth-500"
+          aria-label="End call"
+        >
+          <PhoneDisconnect size={24} weight="fill" />
+        </button>
+
+        <button
+          onClick={() => setSpeakerOn((s) => !s)}
+          className="tap-target flex h-14 w-14 items-center justify-center rounded-full bg-white/15"
+          aria-label={speakerOn ? "Turn speaker off" : "Turn speaker on"}
+        >
+          {speakerOn ? <SpeakerHigh size={22} /> : <SpeakerSlash size={22} />}
+        </button>
+      </div>
+    </div>
+  );
+}

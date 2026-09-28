@@ -1,0 +1,12 @@
+/node_modules
+/.next/
+/out/
+.env*.local
+.DS_Store
+*.pem
+npm-debug.log*
+next-env.d.ts
+*.tsbuildinfo
+
+# Supabase CLI local cache — pooler-url contains a live DB password.
+supabase/.temp/
