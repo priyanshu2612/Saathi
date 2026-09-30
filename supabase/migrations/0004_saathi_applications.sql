@@ -14,7 +14,7 @@ alter table mentor_invites add column if not exists phone text;
 -- saathi_applications: one row per submitted application.
 -- ---------------------------------------------------------------------------
 create table if not exists saathi_applications (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
 
   full_name text not null,
   display_name text not null,

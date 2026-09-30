@@ -75,22 +75,16 @@ export async function claimMentorInvite(
 
 export interface SaathiApplicationDraft {
   fullName: string;
-  displayName: string;
   age: number;
   cityState: string;
   phone: string;
   whatsappNumber: string;
   email: string;
+  telegramUsername: string;
   languages: string[];
   languagesOther: string;
-  background: string;
-  backgroundOther: string;
-  experienceRange: string;
-  qualifications: string;
+  profession: string;
   topics: string[];
-  topicsOther: string;
-  topicsAvoid: string;
-  bio: string;
   modes: string[];
   hoursPerWeek: string;
   availabilityTimes: string[];

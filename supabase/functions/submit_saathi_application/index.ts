@@ -12,22 +12,16 @@ interface Photo {
 
 interface Body {
   fullName?: string;
-  displayName?: string;
   age?: number;
   cityState?: string;
   phone?: string;
   whatsappNumber?: string;
   email?: string;
+  telegramUsername?: string;
   languages?: string[];
   languagesOther?: string;
-  background?: string;
-  backgroundOther?: string;
-  experienceRange?: string;
-  qualifications?: string;
+  profession?: string;
   topics?: string[];
-  topicsOther?: string;
-  topicsAvoid?: string;
-  bio?: string;
   modes?: string[];
   hoursPerWeek?: string;
   availabilityTimes?: string[];
@@ -58,15 +52,12 @@ Deno.serve(async (req) => {
 
   const required: (keyof Body)[] = [
     "fullName",
-    "displayName",
     "age",
     "cityState",
     "phone",
     "whatsappNumber",
     "email",
-    "background",
-    "experienceRange",
-    "bio",
+    "profession",
     "hoursPerWeek",
     "quietSpace",
   ];
@@ -108,22 +99,16 @@ Deno.serve(async (req) => {
   const { error: insertError } = await supabase.from("saathi_applications").insert({
     id: applicationId,
     full_name: body.fullName,
-    display_name: body.displayName,
     age: body.age,
     city_state: body.cityState,
     phone: body.phone,
     whatsapp_number: body.whatsappNumber,
     email: body.email,
+    telegram_username: body.telegramUsername || null,
     languages: body.languages ?? [],
     languages_other: body.languagesOther || null,
-    background: body.background,
-    background_other: body.backgroundOther || null,
-    experience_range: body.experienceRange,
-    qualifications: body.qualifications || null,
+    profession: body.profession,
     topics: body.topics ?? [],
-    topics_other: body.topicsOther || null,
-    topics_avoid: body.topicsAvoid || null,
-    bio: body.bio,
     modes: body.modes ?? [],
     hours_per_week: body.hoursPerWeek,
     availability_times: body.availabilityTimes ?? [],

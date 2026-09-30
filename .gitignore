@@ -10,3 +10,6 @@ next-env.d.ts
 
 # Supabase CLI local cache — pooler-url contains a live DB password.
 supabase/.temp/
+
+# Handoff file for pasting env vars into Vercel — not part of the app.
+sukoon-vercel-env.env

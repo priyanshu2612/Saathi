@@ -13,17 +13,9 @@ const LANGUAGES = [
   "English", "Hindi", "Hinglish", "Marathi", "Gujarati", "Punjabi",
   "Bengali", "Tamil", "Telugu", "Kannada", "Malayalam",
 ];
-const BACKGROUNDS = [
-  "Counsellor / psychologist / therapist",
-  "Trained listener (helpline, NGO, peer support)",
-  "Coach or mentor",
-  "Teacher, HR or social worker",
-  "No formal training, but I'm a natural listener",
-];
-const EXPERIENCE_RANGES = ["Less than 1 year", "1 to 3 years", "3 to 5 years", "More than 5 years"];
 const TOPICS = [
-  "Stress and anxiety", "Loneliness", "Breakups and relationships", "Work and career pressure",
-  "Family issues", "Grief and loss", "Self-confidence", "Just need someone to talk to",
+  "Casual & social", "Dating & relationships", "College life",
+  "Work & career", "Life & emotions", "Difficult conversations",
 ];
 const MODES = ["Chat", "Audio call", "Video call"];
 const HOURS = ["5 to 10", "10 to 20", "20 to 30", "30+"];
@@ -35,22 +27,16 @@ type Draft = SaathiApplicationDraft;
 
 const EMPTY_DRAFT: Draft = {
   fullName: "",
-  displayName: "",
   age: 0,
   cityState: "",
   phone: "",
   whatsappNumber: "",
   email: "",
+  telegramUsername: "",
   languages: [],
   languagesOther: "",
-  background: "",
-  backgroundOther: "",
-  experienceRange: "",
-  qualifications: "",
+  profession: "",
   topics: [],
-  topicsOther: "",
-  topicsAvoid: "",
-  bio: "",
   modes: [],
   hoursPerWeek: "",
   availabilityTimes: [],
@@ -63,7 +49,7 @@ const EMPTY_DRAFT: Draft = {
   confirmedContactConsent: false,
 };
 
-const TOTAL_STEPS = 9;
+const TOTAL_STEPS = 7;
 const MIN_PHOTOS = 3;
 const MAX_PHOTOS = 6;
 
@@ -85,38 +71,6 @@ async function resizeImageToDataUrl(file: File, maxDim = 1024, quality = 0.82): 
   return canvas.toDataURL("image/jpeg", quality);
 }
 
-// Drafts a starter intro from what they've already told us, so step 6 never
-// opens on a blank page — they're editing, not writing from scratch.
-const BACKGROUND_CLAUSES: Record<string, string> = {
-  "Counsellor / psychologist / therapist": "a counsellor, psychologist and therapist",
-  "Trained listener (helpline, NGO, peer support)":
-    "a trained listener with experience in helpline and peer support work",
-  "Coach or mentor": "a coach and mentor",
-  "Teacher, HR or social worker": "a teacher, HR professional and social worker at heart",
-  "No formal training, but I'm a natural listener":
-    "someone without formal training, but a natural listener",
-};
-
-function draftBio(d: Draft): string {
-  const name = d.displayName.trim() || "there";
-  const backgroundLine = BACKGROUND_CLAUSES[d.background] ?? "someone who genuinely listens";
-  const experienceLine = d.experienceRange
-    ? ` I've been doing this for ${d.experienceRange.toLowerCase()}.`
-    : "";
-  const langs = d.languages.length > 0 ? d.languages.slice(0, 3).join(", ") : "";
-  const langLine = langs ? ` I speak ${langs}.` : "";
-  const topics = d.topics.length > 0 ? d.topics.slice(0, 3).map((t) => t.toLowerCase()).join(", ") : "";
-  const topicLine = topics
-    ? ` I'm comfortable talking through things like ${topics}.`
-    : "";
-
-  return (
-    `Hi, I'm ${name}. I'm ${backgroundLine}, and I care about creating a space where you feel ` +
-    `truly heard, not judged.${experienceLine}${langLine}${topicLine} If you need someone to talk ` +
-    `to, I'm here.`
-  );
-}
-
 const fieldClass =
   "w-full rounded-xl2 border border-linen-200 bg-linen-100 px-4 py-3.5 text-[15px] text-dusk-900 outline-none focus:border-warmth-500";
 
@@ -132,7 +86,7 @@ function Label({ children, hint }: { children: React.ReactNode; hint?: string })
 export default function SaathiApplyPage() {
   const router = useRouter();
   const { submitSaathiApplication } = useAppState();
-  const [step, setStep] = useState(0); // 0 = intro, 1..9 = form, 10 = thank you
+  const [step, setStep] = useState(0); // 0 = intro, 1..7 = form, 8 = thank you
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [ageText, setAgeText] = useState("");
   const [sameAsPhone, setSameAsPhone] = useState(true);
@@ -145,9 +99,6 @@ export default function SaathiApplyPage() {
 
   const goNext = () => {
     setError(null);
-    if (step === 5 && !draft.bio.trim()) {
-      setDraft((d) => ({ ...d, bio: draftBio(d) }));
-    }
     setStep((s) => Math.min(s + 1, TOTAL_STEPS + 1));
   };
   const goBack = () => {
@@ -164,7 +115,6 @@ export default function SaathiApplyPage() {
       case 1:
         return (
           draft.fullName.trim().length > 1 &&
-          draft.displayName.trim().length > 0 &&
           Number(ageText) >= 18 &&
           draft.cityState.trim().length > 1
         );
@@ -177,21 +127,17 @@ export default function SaathiApplyPage() {
       case 3:
         return draft.languages.length > 0 || draft.languagesOther.trim().length > 0;
       case 4:
-        return draft.background.length > 0 && draft.experienceRange.length > 0;
+        return draft.profession.trim().length > 0 && draft.topics.length > 0;
       case 5:
-        return draft.topics.length > 0 || draft.topicsOther.trim().length > 0;
-      case 6:
-        return draft.bio.trim().length >= 20;
-      case 7:
         return (
           draft.modes.length > 0 &&
           draft.hoursPerWeek.length > 0 &&
           draft.availabilityTimes.length > 0 &&
           draft.quietSpace.length > 0
         );
-      case 8:
+      case 6:
         return draft.photos.length >= MIN_PHOTOS;
-      case 9:
+      case 7:
         return (
           draft.confirmedAgeAndTrue &&
           draft.confirmedIdCheck &&
@@ -328,15 +274,6 @@ export default function SaathiApplyPage() {
                 />
               </div>
               <div>
-                <Label hint="Usually your first name">Name Seekers will see</Label>
-                <input
-                  value={draft.displayName}
-                  onChange={(e) => set("displayName", e.target.value)}
-                  className={fieldClass}
-                  placeholder="e.g. Priya"
-                />
-              </div>
-              <div>
                 <Label>Age</Label>
                 <input
                   value={ageText}
@@ -421,6 +358,16 @@ export default function SaathiApplyPage() {
                   placeholder="you@example.com"
                 />
               </div>
+
+              <div>
+                <Label hint="Optional">Telegram username</Label>
+                <input
+                  value={draft.telegramUsername}
+                  onChange={(e) => set("telegramUsername", e.target.value)}
+                  className={fieldClass}
+                  placeholder="@yourusername"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -455,90 +402,28 @@ export default function SaathiApplyPage() {
 
         {step === 4 && (
           <div>
-            <h2 className="font-display text-[22px] text-dusk-900">Your experience</h2>
-            <p className="mt-1 text-[13px] text-dusk-400">What best describes your background?</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {BACKGROUNDS.map((b) => (
-                <Chip key={b} label={b} selected={draft.background === b} onClick={() => set("background", b)} />
-              ))}
+            <h2 className="font-display text-[22px] text-dusk-900">About you</h2>
+            <div>
+              <Label>Profession</Label>
+              <input
+                value={draft.profession}
+                onChange={(e) => set("profession", e.target.value)}
+                className={fieldClass}
+                placeholder="e.g. Student, Software Engineer, Teacher"
+              />
             </div>
             <div className="mt-6">
-              <p className="text-[14px] font-medium text-dusk-700">
-                How long have you been supporting or listening to people?
-              </p>
+              <p className="text-[14px] font-medium text-dusk-700">What would you like to talk about?</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {EXPERIENCE_RANGES.map((r) => (
-                  <Chip
-                    key={r}
-                    label={r}
-                    selected={draft.experienceRange === r}
-                    onClick={() => set("experienceRange", r)}
-                  />
+                {TOPICS.map((t) => (
+                  <Chip key={t} label={t} selected={draft.topics.includes(t)} onClick={() => set("topics", toggleIn(draft.topics, t))} />
                 ))}
               </div>
-            </div>
-            <div className="mt-6">
-              <Label>Qualifications or certifications (optional)</Label>
-              <textarea
-                value={draft.qualifications}
-                onChange={(e) => set("qualifications", e.target.value)}
-                rows={3}
-                className={fieldClass}
-              />
             </div>
           </div>
         )}
 
         {step === 5 && (
-          <div>
-            <h2 className="font-display text-[22px] text-dusk-900">What can you help with</h2>
-            <p className="mt-1 text-[13px] text-dusk-400">Pick everything that fits.</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {TOPICS.map((t) => (
-                <Chip key={t} label={t} selected={draft.topics.includes(t)} onClick={() => set("topics", toggleIn(draft.topics, t))} />
-              ))}
-            </div>
-            <div className="mt-4">
-              <Label>Anything else (optional)</Label>
-              <input
-                value={draft.topicsOther}
-                onChange={(e) => set("topicsOther", e.target.value)}
-                className={fieldClass}
-              />
-            </div>
-            <div className="mt-6">
-              <Label hint="Your boundaries matter and will be respected">
-                Topics you&apos;d rather not discuss (optional)
-              </Label>
-              <textarea
-                value={draft.topicsAvoid}
-                onChange={(e) => set("topicsAvoid", e.target.value)}
-                rows={3}
-                className={fieldClass}
-              />
-            </div>
-          </div>
-        )}
-
-        {step === 6 && (
-          <div>
-            <h2 className="font-display text-[22px] text-dusk-900">Introduce yourself</h2>
-            <p className="mt-1 text-[13px] text-dusk-400">
-              We&apos;ve started this for you based on your answers — make it sound like you, and
-              change anything you like. This becomes the draft of your public profile.
-            </p>
-            <div className="mt-4">
-              <textarea
-                value={draft.bio}
-                onChange={(e) => set("bio", e.target.value)}
-                rows={7}
-                className={fieldClass}
-              />
-            </div>
-          </div>
-        )}
-
-        {step === 7 && (
           <div>
             <h2 className="font-display text-[22px] text-dusk-900">Your availability</h2>
             <div>
@@ -581,7 +466,7 @@ export default function SaathiApplyPage() {
           </div>
         )}
 
-        {step === 8 && (
+        {step === 6 && (
           <div>
             <h2 className="font-display text-[22px] text-dusk-900">Add your photos</h2>
             <p className="mt-1 text-[13px] text-dusk-400">
@@ -639,7 +524,7 @@ export default function SaathiApplyPage() {
           </div>
         )}
 
-        {step === 9 && (
+        {step === 7 && (
           <div>
             <h2 className="font-display text-[22px] text-dusk-900">Before you submit</h2>
             <p className="mt-1 text-[13px] text-dusk-400">
@@ -680,7 +565,7 @@ export default function SaathiApplyPage() {
       </div>
 
       <div className="px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-2">
-        {error && step !== 9 && <p className="mb-2 text-[13px] text-warmth-600">{error}</p>}
+        {error && step !== 7 && <p className="mb-2 text-[13px] text-warmth-600">{error}</p>}
         <PrimaryButton
           onClick={step === TOTAL_STEPS ? handleSubmit : goNext}
           disabled={!isValid || submitting}
