@@ -79,8 +79,6 @@ export interface SaathiApplicationDraft {
   cityState: string;
   phone: string;
   whatsappNumber: string;
-  email: string;
-  telegramUsername: string;
   languages: string[];
   languagesOther: string;
   profession: string;

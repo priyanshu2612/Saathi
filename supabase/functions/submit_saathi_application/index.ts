@@ -16,8 +16,6 @@ interface Body {
   cityState?: string;
   phone?: string;
   whatsappNumber?: string;
-  email?: string;
-  telegramUsername?: string;
   languages?: string[];
   languagesOther?: string;
   profession?: string;
@@ -56,7 +54,6 @@ Deno.serve(async (req) => {
     "cityState",
     "phone",
     "whatsappNumber",
-    "email",
     "profession",
     "hoursPerWeek",
     "quietSpace",
@@ -103,8 +100,6 @@ Deno.serve(async (req) => {
     city_state: body.cityState,
     phone: body.phone,
     whatsapp_number: body.whatsappNumber,
-    email: body.email,
-    telegram_username: body.telegramUsername || null,
     languages: body.languages ?? [],
     languages_other: body.languagesOther || null,
     profession: body.profession,

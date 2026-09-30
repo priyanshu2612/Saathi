@@ -31,8 +31,6 @@ const EMPTY_DRAFT: Draft = {
   cityState: "",
   phone: "",
   whatsappNumber: "",
-  email: "",
-  telegramUsername: "",
   languages: [],
   languagesOther: "",
   profession: "",
@@ -119,11 +117,7 @@ export default function SaathiApplyPage() {
           draft.cityState.trim().length > 1
         );
       case 2:
-        return (
-          draft.phone.length === 10 &&
-          (sameAsPhone || draft.whatsappNumber.length === 10) &&
-          /\S+@\S+\.\S+/.test(draft.email)
-        );
+        return draft.phone.length === 10 && (sameAsPhone || draft.whatsappNumber.length === 10);
       case 3:
         return draft.languages.length > 0 || draft.languagesOther.trim().length > 0;
       case 4:
@@ -224,7 +218,7 @@ export default function SaathiApplyPage() {
         <h1 className="mt-6 font-display text-[24px] text-dusk-900">Thank you!</h1>
         <p className="mt-2 max-w-xs text-[14px] text-dusk-400">
           Your responses are stored and we&apos;re reviewing every application personally. If you&apos;re
-          shortlisted, we&apos;ll send your personal access code on WhatsApp or email.
+          shortlisted, we&apos;ll send your personal access code on WhatsApp.
         </p>
         <p className="mt-3 max-w-xs text-[12.5px] text-dusk-400">
           Joining is always free — we&apos;ll never ask you for money.
@@ -347,27 +341,6 @@ export default function SaathiApplyPage() {
                   </div>
                 </div>
               )}
-
-              <div>
-                <Label>Email address</Label>
-                <input
-                  value={draft.email}
-                  onChange={(e) => set("email", e.target.value)}
-                  type="email"
-                  className={fieldClass}
-                  placeholder="you@example.com"
-                />
-              </div>
-
-              <div>
-                <Label hint="Optional">Telegram username</Label>
-                <input
-                  value={draft.telegramUsername}
-                  onChange={(e) => set("telegramUsername", e.target.value)}
-                  className={fieldClass}
-                  placeholder="@yourusername"
-                />
-              </div>
             </div>
           </div>
         )}
@@ -531,23 +504,30 @@ export default function SaathiApplyPage() {
               We review every application personally — joining is always free.
             </p>
 
-            <div className="mt-5 space-y-3">
-              {[
-                { key: "confirmedAgeAndTrue" as const, text: "I am 18 or older and the information I've given is true." },
-                { key: "confirmedIdCheck" as const, text: "I agree to an identity check (ID and a short video) before going live." },
-                { key: "confirmedConductReview" as const, text: "I understand sessions may be reviewed for safety and I'll follow the conduct policy." },
-                { key: "confirmedContactConsent" as const, text: "I agree to be contacted about my application on WhatsApp and email." },
-              ].map(({ key, text }) => (
-                <label key={key} className="flex items-start gap-3 rounded-xl2 bg-linen-100 p-3.5">
-                  <input
-                    type="checkbox"
-                    checked={draft[key]}
-                    onChange={(e) => set(key, e.target.checked)}
-                    className="mt-0.5 h-4.5 w-4.5 shrink-0 accent-warmth-500"
-                  />
-                  <span className="text-[13px] text-dusk-800">{text}</span>
-                </label>
-              ))}
+            <div className="mt-5">
+              <label className="flex items-start gap-3 rounded-xl2 bg-linen-100 p-3.5">
+                <input
+                  type="checkbox"
+                  checked={draft.confirmedAgeAndTrue}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setDraft((d) => ({
+                      ...d,
+                      confirmedAgeAndTrue: checked,
+                      confirmedIdCheck: checked,
+                      confirmedConductReview: checked,
+                      confirmedContactConsent: checked,
+                    }));
+                  }}
+                  className="mt-0.5 h-4.5 w-4.5 shrink-0 accent-warmth-500"
+                />
+                <span className="text-[13px] text-dusk-800">
+                  I&apos;m 18 or older and everything I&apos;ve shared is true. I agree to an
+                  identity check (ID and a short video) before going live, understand sessions may
+                  be reviewed for safety, and agree to follow the conduct policy and be contacted
+                  about my application on WhatsApp.
+                </span>
+              </label>
             </div>
 
             <div className="mt-6">
