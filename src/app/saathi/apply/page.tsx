@@ -181,7 +181,7 @@ export default function SaathiApplyPage() {
         <div className="relative min-h-0 w-full flex-1 overflow-hidden rounded-b-xl2">
           <Image
             src="/saathi/be-a-saathi-hero.webp"
-            alt="Be a Saathi — earn up to ₹10,000 per day, up to 90% commission, verified and safe"
+            alt="Be a Saathi — earn up to ₹10,000 per week, up to 90% commission, verified and safe"
             fill
             priority
             className="object-cover object-top"
