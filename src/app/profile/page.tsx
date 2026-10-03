@@ -200,7 +200,7 @@ export default function ProfilePage() {
               iconBg="bg-warmth-50"
               iconColor="text-warmth-500"
               title="Become a Saathi"
-              subtitle="Earn by listening — apply in 5 minutes"
+              subtitle="Earn by listening — apply in 2 minutes"
               onClick={() => router.push("/saathi")}
             />
           </div>

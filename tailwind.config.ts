@@ -84,6 +84,10 @@ const config: Config = {
             transform: "scale(1.08)",
           },
         },
+        fadeIn: {
+          "0%": { opacity: "0", transform: "translateY(4px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
         giftPop: {
           "0%": { transform: "scale(0.5) translateY(24px)", opacity: "0" },
           "20%": { transform: "scale(1.08) translateY(0)", opacity: "1" },
@@ -102,6 +106,7 @@ const config: Config = {
         pulseSage: "pulseSage 2.4s ease-in-out infinite",
         approach: "approach 1.8s ease-in-out infinite",
         giftPop: "giftPop 3.2s ease-out forwards",
+        fadeIn: "fadeIn 0.4s ease-out",
       },
     },
   },

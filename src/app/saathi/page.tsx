@@ -137,7 +137,7 @@ export default function SaathiSignInPage() {
           >
             Apply to become a Saathi
           </button>
-          <p className="mt-1 text-[12px] text-dusk-400">Takes about 5 minutes. Joining is free.</p>
+          <p className="mt-1 text-[12px] text-dusk-400">Takes about 2 minutes. Joining is free.</p>
         </div>
       </div>
     </div>

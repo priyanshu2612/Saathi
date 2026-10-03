@@ -9,6 +9,7 @@ import PrimaryButton from "@/components/ui/PrimaryButton";
 import Chip from "@/components/ui/Chip";
 import { useAppState } from "@/lib/store";
 import { trackApplyStep } from "@/lib/analytics";
+import SocialProof from "@/components/saathi/SocialProof";
 import type { SaathiApplicationDraft } from "@/lib/data/backend";
 
 const LANGUAGES = [
@@ -191,8 +192,8 @@ export default function SaathiApplyPage() {
             bottom of the photo first, never the headline/badges up top. */}
         <div className="relative min-h-0 w-full flex-1 overflow-hidden rounded-b-xl2">
           <Image
-            src="/saathi/be-a-saathi-hero.webp"
-            alt="Be a Saathi — earn up to ₹10,000 per week, up to 90% commission, verified and safe"
+            src="/saathi/be-a-saathi-hero-v2.webp"
+            alt="Baniye ek Saathi — earn up to ₹10,000 per week, work 3-4 hours a day, up to 90% payout, verified and safe"
             fill
             priority
             className="object-cover object-top"
@@ -202,16 +203,18 @@ export default function SaathiApplyPage() {
         <div className="flex shrink-0 flex-col px-6 pt-4">
           <div className="rounded-xl2 bg-sage-50 p-4">
             <p className="text-[13px] text-dusk-700">
-              <span className="font-semibold">How it works:</span> fill this in ~5 minutes → we
-              review every application personally → if shortlisted, you get a personal access code
-              → use it to go live.
+              <span className="font-semibold">Kaise kaam karta hai:</span> 2 minute mein form
+              bharein → hum har application khud review karte hain → shortlist hone par aapko ek
+              personal access code milega → us code se go live karein.
             </p>
           </div>
+
+          <SocialProof className="mt-3" />
 
           <div className="pt-4">
             <PrimaryButton onClick={() => setStep(1)}>Let&apos;s begin</PrimaryButton>
             <p className="mt-2 text-center text-[12px] text-dusk-400">
-              Takes 5 minutes. Joining is always free.
+              Takes 2 minutes. Joining is always free.
             </p>
           </div>
         </div>
@@ -268,6 +271,7 @@ export default function SaathiApplyPage() {
           <div>
             <h2 className="font-display text-[22px] text-dusk-900">About you</h2>
             <p className="mt-1 text-[13px] text-dusk-400">Just the basics, for now.</p>
+            <SocialProof className="mt-4" />
             <div className="mt-6 space-y-4">
               <div>
                 <Label>Full name</Label>
@@ -275,7 +279,7 @@ export default function SaathiApplyPage() {
                   value={draft.fullName}
                   onChange={(e) => set("fullName", e.target.value)}
                   className={fieldClass}
-                  placeholder="As on your ID"
+                  placeholder="Aapka naam, jaise Priya Sharma"
                 />
               </div>
               <div>
@@ -586,6 +590,10 @@ export default function SaathiApplyPage() {
 
       <div className="sticky bottom-0 z-10 border-t border-linen-200 bg-linen-50 px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-3">
         {error && step !== 7 && <p className="mb-2 text-[13px] text-warmth-600">{error}</p>}
+        <p className="mb-2.5 flex items-start gap-2 rounded-xl2 bg-sage-400/10 px-3 py-2 text-left text-[12px] font-medium text-sage-600">
+          <ShieldCheck size={15} weight="fill" className="mt-0.5 shrink-0 text-sage-500" />
+          Yeh ek 100% safe platform hai. Aapki details aapki permission ke bina kabhi live nahi hongi.
+        </p>
         <PrimaryButton
           onClick={step === TOTAL_STEPS ? handleSubmit : goNext}
           disabled={!isValid || submitting}
