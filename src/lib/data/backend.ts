@@ -285,6 +285,10 @@ export async function createPaymentOrder(userId: string, packId: string): Promis
   return invoke("create_order", { userId, packId });
 }
 
+export async function trackFunnelStep(visitorId: string, step: number): Promise<void> {
+  await invoke("track_funnel", { visitorId, step });
+}
+
 export async function sendGift(
   userId: string,
   sessionId: string,

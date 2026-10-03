@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { CaretLeft, Plus, X, CheckCircle, ShieldCheck, Camera, Images } from "@phosphor-icons/react";
@@ -8,6 +8,7 @@ import BottomSheet from "@/components/ui/BottomSheet";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import Chip from "@/components/ui/Chip";
 import { useAppState } from "@/lib/store";
+import { trackApplyStep } from "@/lib/analytics";
 import type { SaathiApplicationDraft } from "@/lib/data/backend";
 
 const LANGUAGES = [
@@ -94,6 +95,11 @@ export default function SaathiApplyPage() {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
+
+  // Anonymous funnel tracking: one event each time a step is reached.
+  useEffect(() => {
+    trackApplyStep(step);
+  }, [step]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
