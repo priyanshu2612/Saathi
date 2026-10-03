@@ -578,7 +578,7 @@ export default function SaathiApplyPage() {
         )}
       </div>
 
-      <div className="px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-2">
+      <div className="sticky bottom-0 z-10 border-t border-linen-200 bg-linen-50 px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-3">
         {error && step !== 7 && <p className="mb-2 text-[13px] text-warmth-600">{error}</p>}
         <PrimaryButton
           onClick={step === TOTAL_STEPS ? handleSubmit : goNext}
