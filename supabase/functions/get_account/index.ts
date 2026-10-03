@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     supabase.from("wallets").select("coin_balance, updated_at").eq("user_id", userId).maybeSingle(),
     supabase
       .from("coin_transactions")
-      .select("id, amount, type, related_session_id, created_at")
+      .select("id, amount, type, related_session_id, description, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(50),
@@ -32,6 +32,7 @@ Deno.serve(async (req) => {
       .from("sessions")
       .select("id, seeker_id, mentor_id, mode, started_at, ended_at, total_coins_charged, status, rate_per_minute")
       .or(`seeker_id.eq.${userId},mentor_id.eq.${userId}`)
+      .in("status", ["active", "completed", "disputed"])
       .order("started_at", { ascending: false })
       .limit(50),
   ]);

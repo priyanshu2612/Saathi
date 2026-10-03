@@ -223,13 +223,23 @@ export const MOCK_MENTORS: Mentor[] = [
 ];
 
 export const COIN_PACKS: CoinPack[] = [
-  { id: "p1", name: "A Little Time", priceInr: 99, coins: 100, bonusLabel: "Enough for a quick check-in", frame: "starter" },
+  { id: "p1", name: "A Little Time", priceInr: 249, coins: 250, bonusLabel: "Enough for a quick check-in", frame: "starter" },
   { id: "p2", name: "A Good Talk", priceInr: 499, coins: 550, bonusLabel: "Our most-loved pack", frame: "popular" },
   { id: "p3", name: "Real Connection", priceInr: 999, coins: 1150, bonusLabel: "For when you need more than a moment", frame: "value" },
   { id: "p4", name: "Always Here", priceInr: 2499, coins: 3000, bonusLabel: "Peace of mind, whenever you need it", frame: "power" },
 ];
 
 export const FREE_TRIAL_COINS = 60;
+
+// One-time bonus on a seeker's very first recharge, as a % of the pack's coins.
+export const FIRST_RECHARGE_BONUS_PCT = 50;
+
+export const firstRechargeBonus = (packCoins: number) =>
+  Math.round((packCoins * FIRST_RECHARGE_BONUS_PCT) / 100);
+
+// Extra coins a pack gives over the entry pack's coins-per-rupee rate.
+export const packExtraCoins = (pack: CoinPack) =>
+  Math.max(0, pack.coins - Math.round(pack.priceInr * (COIN_PACKS[0].coins / COIN_PACKS[0].priceInr)));
 
 function hoursAgo(h: number) {
   return new Date(Date.now() - h * 60 * 60 * 1000).toISOString();

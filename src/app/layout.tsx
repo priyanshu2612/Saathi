@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppStateProvider } from "@/lib/store";
 import { ThemeProvider, NO_FLASH_THEME_SCRIPT } from "@/lib/theme";
 import AuthGate from "@/components/auth/AuthGate";
+import { ToastProvider } from "@/components/ui/Toast";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,8 +46,10 @@ export default function RootLayout({
           <div className="app-frame-outer">
             <div className="app-frame">
               <AppStateProvider>
-              <AuthGate>{children}</AuthGate>
-            </AppStateProvider>
+                <ToastProvider>
+                  <AuthGate>{children}</AuthGate>
+                </ToastProvider>
+              </AppStateProvider>
             </div>
           </div>
         </ThemeProvider>

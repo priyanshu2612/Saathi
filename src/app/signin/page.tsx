@@ -9,15 +9,20 @@ import { useAppState } from "@/lib/store";
 
 export default function SignInPage() {
   const router = useRouter();
-  const { requestOtp } = useAppState();
+  const { checkPhone } = useAppState();
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const handleContinue = () => {
-    if (requestOtp(phone)) {
-      router.push("/signin/otp");
+  const [loading, setLoading] = useState(false);
+
+  const handleContinue = async () => {
+    setLoading(true);
+    const result = await checkPhone(phone);
+    setLoading(false);
+    if (result.ok) {
+      router.push("/signin/pin");
     } else {
-      setError("Enter a valid 10-digit phone number.");
+      setError(result.error);
     }
   };
 
@@ -49,11 +54,11 @@ export default function SignInPage() {
       </div>
 
       <div className="mt-auto pt-10">
-        <PrimaryButton onClick={handleContinue} disabled={phone.length < 10}>
-          Continue
+        <PrimaryButton onClick={handleContinue} disabled={phone.length < 10 || loading}>
+          {loading ? "Checking…" : "Continue"}
         </PrimaryButton>
         <p className="mt-4 text-center text-[12px] text-dusk-400">
-          By continuing, you agree this is a demo — no real SMS is sent.
+          Just your phone number and a 4-digit PIN — no SMS code needed.
         </p>
       </div>
     </div>

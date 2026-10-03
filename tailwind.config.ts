@@ -84,6 +84,13 @@ const config: Config = {
             transform: "scale(1.08)",
           },
         },
+        giftPop: {
+          "0%": { transform: "scale(0.5) translateY(24px)", opacity: "0" },
+          "20%": { transform: "scale(1.08) translateY(0)", opacity: "1" },
+          "30%": { transform: "scale(1)" },
+          "85%": { transform: "scale(1) translateY(0)", opacity: "1" },
+          "100%": { transform: "scale(0.9) translateY(-16px)", opacity: "0" },
+        },
         approach: {
           "0%": { transform: "translateX(-6px)", opacity: "0.4" },
           "50%": { transform: "translateX(0px)", opacity: "1" },
@@ -94,6 +101,7 @@ const config: Config = {
         pulseGlow: "pulseGlow 2.2s ease-in-out infinite",
         pulseSage: "pulseSage 2.4s ease-in-out infinite",
         approach: "approach 1.8s ease-in-out infinite",
+        giftPop: "giftPop 3.2s ease-out forwards",
       },
     },
   },

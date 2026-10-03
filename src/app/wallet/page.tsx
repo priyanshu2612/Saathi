@@ -15,7 +15,12 @@ import {
 } from "@phosphor-icons/react";
 import BottomNav from "@/components/ui/BottomNav";
 import { useAppState } from "@/lib/store";
-import { COIN_PACKS } from "@/lib/mock-data";
+import {
+  COIN_PACKS,
+  FIRST_RECHARGE_BONUS_PCT,
+  firstRechargeBonus,
+  packExtraCoins,
+} from "@/lib/mock-data";
 import { formatDateTime } from "@/lib/format";
 
 function average(values: number[]) {
@@ -36,14 +41,11 @@ const PACK_TAGS: Record<string, string> = {
   p4: "Best Value",
 };
 
-const BASE_RATE = COIN_PACKS[0].coins / COIN_PACKS[0].priceInr;
-
-function bonusCoins(pack: (typeof COIN_PACKS)[number]) {
-  return Math.max(0, pack.coins - Math.round(pack.priceInr * BASE_RATE));
-}
-
 const TX_LABEL: Record<string, { label: string; icon: typeof ArrowUp }> = {
   purchase: { label: "Coins purchased", icon: ArrowUp },
+  bonus: { label: "Bonus coins", icon: Gift },
+  gift_sent: { label: "Gift sent", icon: Gift },
+  gift_received: { label: "Gift received", icon: Gift },
   session_spend: { label: "Conversation", icon: ArrowDown },
   session_earning: { label: "Earnings", icon: ArrowUp },
   refund: { label: "Refund", icon: ArrowUp },
@@ -51,16 +53,18 @@ const TX_LABEL: Record<string, { label: string; icon: typeof ArrowUp }> = {
 };
 
 export default function WalletPage() {
-  const { coinBalance, transactions, mentors, addCoins } = useAppState();
+  const { coinBalance, transactions, mentors, purchasePack } = useAppState();
+  const [payNotice, setPayNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [buying, setBuying] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const handleBuy = (packId: string, coins: number) => {
-    setBuying(packId);
-    setTimeout(() => {
-      addCoins(coins, "purchase");
-      setBuying(null);
-    }, 900);
+  const handleBuy = async (pack: (typeof COIN_PACKS)[number]) => {
+    setBuying(pack.id);
+    setPayNotice(null);
+    const result = await purchasePack(pack);
+    setBuying(null);
+    if (!result.ok) setPayNotice({ ok: false, text: result.error ?? "Payment failed." });
+    else setPayNotice({ ok: true, text: result.error ?? `${pack.coins} coins added.` });
   };
 
   const handleRefresh = () => {
@@ -76,6 +80,8 @@ export default function WalletPage() {
       audioMinutes: avgAudioRate > 0 ? Math.floor(coinBalance / avgAudioRate) : 0,
     };
   }, [mentors, coinBalance]);
+
+  const isFirstRecharge = !transactions.some((tx) => tx.type === "purchase");
 
   const lifetimePurchased = useMemo(
     () =>
@@ -128,10 +134,27 @@ export default function WalletPage() {
 
       <div className="mt-6 px-5">
         <h2 className="text-[20px] font-bold text-dusk-900">Add more time</h2>
+        {isFirstRecharge && (
+          <div className="mt-3 flex items-center gap-3 rounded-xl2 bg-warmth-50 p-3.5">
+            <Image src="/gifts/surprise-box.png" alt="" width={56} height={56} className="h-14 w-14 shrink-0 object-contain" />
+            <div>
+              <p className="text-[14px] font-semibold text-dusk-900">First recharge bonus</p>
+              <p className="text-[12.5px] text-dusk-700">
+                Get {FIRST_RECHARGE_BONUS_PCT}% extra coins on your first pack — one time only.
+              </p>
+            </div>
+          </div>
+        )}
+        {payNotice && (
+          <p className={`mt-3 text-[13px] ${payNotice.ok ? "text-sage-500" : "text-warmth-600"}`}>
+            {payNotice.text}
+          </p>
+        )}
         <div className="mt-4 flex flex-col gap-4">
           {COIN_PACKS.map((pack) => {
             const tag = PACK_TAGS[pack.id];
-            const bonus = bonusCoins(pack);
+            const bonus = packExtraCoins(pack);
+            const firstBonus = isFirstRecharge ? firstRechargeBonus(pack.coins) : 0;
             return (
               <div
                 key={pack.id}
@@ -162,11 +185,16 @@ export default function WalletPage() {
                         +{bonus} extra coins
                       </p>
                     )}
+                    {firstBonus > 0 && (
+                      <p className="text-[12px] font-semibold text-warmth-600">
+                        +{firstBonus} first-recharge bonus
+                      </p>
+                    )}
                   </div>
                 </div>
                 <button
-                  onClick={() => handleBuy(pack.id, pack.coins)}
-                  disabled={buying === pack.id}
+                  onClick={() => handleBuy(pack)}
+                  disabled={buying !== null}
                   className="tap-target shrink-0 rounded-full bg-warmth-500 px-4 py-2 text-[13px] font-medium text-white disabled:opacity-60"
                 >
                   {buying === pack.id ? "Adding…" : `₹${pack.priceInr}`}
@@ -202,7 +230,10 @@ export default function WalletPage() {
                 <div className="flex items-center gap-3">
                   <Icon size={16} className="text-dusk-400" />
                   <div>
-                    <p className="text-[13px] font-medium text-dusk-800">{meta.label}</p>
+                    <p className="text-[13px] font-medium text-dusk-800">
+                      {meta.label}
+                      {tx.description ? ` · ${tx.description}` : ""}
+                    </p>
                     <p className="text-[11px] text-dusk-400">
                       {formatDateTime(tx.createdAt)}
                     </p>

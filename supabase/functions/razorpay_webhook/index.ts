@@ -4,6 +4,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { createHmac } from "node:crypto";
+import { FIRST_RECHARGE_BONUS_PCT, PACKS } from "../_shared/packs.ts";
 
 Deno.serve(async (req) => {
   const rawBody = await req.text();
@@ -21,11 +22,16 @@ Deno.serve(async (req) => {
   }
 
   const payment = payload.payload.payment.entity;
+  // Notes were set server-side by create_order; the pack table, not the
+  // notes, decides how many coins this payment is worth.
   const userId = payment.notes?.user_id;
-  const coins = Number(payment.notes?.coins);
+  const pack = PACKS[payment.notes?.pack_id as string];
 
-  if (!userId || !coins) {
-    return Response.json({ error: "Missing user_id/coins in payment notes" }, { status: 400 });
+  if (!userId || !pack) {
+    return Response.json({ error: "Missing user_id/pack_id in payment notes" }, { status: 400 });
+  }
+  if (payment.amount !== pack.priceInr * 100) {
+    return Response.json({ error: "Amount doesn't match the pack" }, { status: 400 });
   }
 
   const supabase = createClient(
@@ -33,13 +39,36 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  await supabase.from("coin_transactions").insert({
-    user_id: userId,
-    amount: coins,
-    type: "purchase",
-  });
+  // First purchase gets the one-time bonus.
+  const { count } = await supabase
+    .from("coin_transactions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("type", "purchase");
+  const bonus = count === 0 ? Math.round((pack.coins * FIRST_RECHARGE_BONUS_PCT) / 100) : 0;
 
-  await supabase.rpc("increment_wallet_balance", { p_user_id: userId, p_amount: coins });
+  // The unique payment id makes a redelivered webhook a no-op.
+  const { error: insertError } = await supabase.from("coin_transactions").insert({
+    user_id: userId,
+    amount: pack.coins,
+    type: "purchase",
+    razorpay_payment_id: payment.id,
+  });
+  if (insertError) return Response.json({ ok: true, duplicate: true });
+
+  if (bonus > 0) {
+    await supabase.from("coin_transactions").insert({
+      user_id: userId,
+      amount: bonus,
+      type: "bonus",
+      description: "First-recharge bonus",
+    });
+  }
+
+  await supabase.rpc("increment_wallet_balance", {
+    p_user_id: userId,
+    p_amount: pack.coins + bonus,
+  });
 
   return Response.json({ ok: true });
 });

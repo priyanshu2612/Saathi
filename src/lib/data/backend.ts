@@ -1,5 +1,11 @@
 import { supabase } from "@/lib/supabase/client";
-import { CoinTransaction, MoodTag, SessionMode, SessionRecord } from "@/lib/types";
+import {
+  CoinTransaction,
+  MoodTag,
+  SessionMode,
+  SessionRecord,
+  TopicCategory,
+} from "@/lib/types";
 import type { MentorProfileDraft } from "@/lib/store";
 
 const SEEKER_ID_KEY = "comfort-companion-seeker-id";
@@ -19,6 +25,12 @@ export function getSeekerId() {
   return getStoredId(SEEKER_ID_KEY);
 }
 
+export function setSeekerId(id: string | null) {
+  if (typeof window === "undefined") return;
+  if (id) window.localStorage.setItem(SEEKER_ID_KEY, id);
+  else window.localStorage.removeItem(SEEKER_ID_KEY);
+}
+
 export function getMentorId() {
   return getStoredId(MENTOR_ID_KEY);
 }
@@ -26,7 +38,16 @@ export function getMentorId() {
 async function invoke<T>(name: string, body: Record<string, unknown>): Promise<T> {
   if (!supabase) throw new Error("Supabase client is not configured.");
   const { data, error } = await supabase.functions.invoke(name, { body });
-  if (error) throw error;
+  if (error) {
+    // Non-2xx responses surface as a generic FunctionsHttpError; the useful
+    // message (e.g. "Wrong PIN. 4 tries left.") is in the response body.
+    const res = (error as { context?: Response }).context;
+    let message: string | undefined;
+    if (res && typeof res.json === "function") {
+      message = await res.json().then((b: { error?: string }) => b?.error).catch(() => undefined);
+    }
+    throw message ? new Error(message) : error;
+  }
   if (data?.error) throw new Error(data.error);
   return data as T;
 }
@@ -55,6 +76,26 @@ export async function ensureSeekerId(displayName?: string): Promise<string> {
     });
 
   return inFlightBootstrap;
+}
+
+export interface SeekerAccount {
+  userId: string;
+  phone: string;
+  username: string;
+  age: number | null;
+}
+
+export async function seekerLookup(phone: string): Promise<boolean> {
+  const { exists } = await invoke<{ exists: boolean }>("seeker_auth", { action: "lookup", phone });
+  return exists;
+}
+
+export async function seekerSignUp(phone: string, pin: string): Promise<SeekerAccount> {
+  return invoke<SeekerAccount>("seeker_auth", { action: "signup", phone, pin });
+}
+
+export async function seekerLogIn(phone: string, pin: string): Promise<SeekerAccount> {
+  return invoke<SeekerAccount>("seeker_auth", { action: "login", phone, pin });
 }
 
 export async function claimMentorInvite(
@@ -134,7 +175,7 @@ export async function startSessionRemote(
       mentorId: session.mentor_id,
       mode: session.mode,
       startedAt: session.started_at,
-      status: "active",
+      status: session.status === "ringing" ? "ringing" : "active",
       totalCoinsCharged: session.total_coins_charged,
       ratePerMinute: session.rate_per_minute,
     };
@@ -143,10 +184,113 @@ export async function startSessionRemote(
   }
 }
 
+export interface PolledGift {
+  id: string;
+  giftId: string;
+  giftName: string;
+  mentorCoins: number;
+  createdAt: string;
+}
+
+export interface CallPollSession {
+  id: string;
+  status: string;
+  gifts?: PolledGift[];
+  startedAt: string;
+  topicCategory: TopicCategory | null;
+  topic: string | null;
+  seekerName?: string;
+}
+
+export interface IncomingCall {
+  id: string;
+  mode: SessionMode;
+  startedAt: string;
+  topicCategory: TopicCategory | null;
+  topic: string | null;
+  seekerName: string;
+}
+
+export async function pollSeekerCall(userId: string, sessionId: string): Promise<CallPollSession> {
+  const { session } = await invoke<{ session: CallPollSession }>("call_poll", {
+    role: "seeker",
+    userId,
+    sessionId,
+  });
+  return session;
+}
+
+export async function pollMentorCall(userId: string, sessionId: string): Promise<CallPollSession> {
+  const { session } = await invoke<{ session: CallPollSession }>("call_poll", {
+    role: "mentor",
+    userId,
+    sessionId,
+  });
+  return session;
+}
+
+export async function pollIncomingCalls(mentorId: string): Promise<IncomingCall[]> {
+  const { calls } = await invoke<{ calls: IncomingCall[] }>("call_poll", {
+    role: "mentor",
+    userId: mentorId,
+  });
+  return calls;
+}
+
+export async function respondToCall(
+  mentorId: string,
+  sessionId: string,
+  action: "accept" | "decline"
+): Promise<void> {
+  await invoke("call_respond", { mentorId, sessionId, action });
+}
+
+export async function setSessionTopic(
+  userId: string,
+  sessionId: string,
+  category: TopicCategory,
+  topic: string
+): Promise<void> {
+  await invoke("set_session_topic", { userId, sessionId, category, topic });
+}
+
+export interface AgoraCredentials {
+  appId: string;
+  channel: string;
+  token: string;
+  uid: number;
+}
+
+export async function getAgoraCredentials(
+  userId: string,
+  sessionId: string
+): Promise<AgoraCredentials> {
+  return invoke<AgoraCredentials>("agora_token", { userId, sessionId });
+}
+
 export async function sessionTick(
   sessionId: string
 ): Promise<{ ended: boolean; coinsCharged: number; coinBalance: number }> {
   return invoke("session_tick", { sessionId });
+}
+
+export interface PaymentOrder {
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+}
+
+export async function createPaymentOrder(userId: string, packId: string): Promise<PaymentOrder> {
+  return invoke("create_order", { userId, packId });
+}
+
+export async function sendGift(
+  userId: string,
+  sessionId: string,
+  giftId: string
+): Promise<{ coinBalance: number }> {
+  return invoke("send_gift", { userId, sessionId, giftId });
 }
 
 export async function endSessionRemote(sessionId: string): Promise<void> {
@@ -163,6 +307,7 @@ export async function getAccount(
       amount: number;
       type: CoinTransaction["type"];
       related_session_id: string | null;
+      description: string | null;
       created_at: string;
     }[];
     sessions: {
@@ -186,6 +331,7 @@ export async function getAccount(
       type: t.type,
       createdAt: t.created_at,
       relatedSessionId: t.related_session_id ?? undefined,
+      description: t.description ?? undefined,
     })),
     sessions: data.sessions.map((s) => ({
       id: s.id,

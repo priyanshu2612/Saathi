@@ -48,7 +48,7 @@ export default function SaathiSignInPage() {
       );
       return;
     }
-    router.push("/partner/profile?onboarding=1");
+    router.push("/partner/dashboard");
   };
 
   return (

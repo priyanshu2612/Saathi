@@ -8,14 +8,19 @@ import {
   useMemo,
   useState,
 } from "react";
-import { MOCK_MENTORS, FREE_TRIAL_COINS } from "./mock-data";
+import { MOCK_MENTORS, FREE_TRIAL_COINS, firstRechargeBonus } from "./mock-data";
+import { Gift, saathiGiftCoins } from "./gifts";
+import { openRazorpayCheckout } from "./razorpay";
 import {
   ChatMessage,
+  CoinPack,
+  ReceivedGift,
   CoinTransaction,
   Mentor,
   MoodTag,
   SessionMode,
   SessionRecord,
+  TopicCategory,
 } from "./types";
 import { isDemoMode } from "./supabase/client";
 import { fetchMentors } from "./data/mentors";
@@ -27,14 +32,36 @@ import {
   getMentorId,
   getSeekerId,
   SaathiApplicationDraft,
+  seekerLogIn,
+  seekerLookup,
+  seekerSignUp,
+  createPaymentOrder,
+  sendGift as sendGiftRemote,
   sessionTick,
+  setSeekerId,
   setMentorOnlineRemote,
+  setSessionTopic as setSessionTopicRemote,
   startSessionRemote,
   submitSaathiApplication as submitSaathiApplicationRemote,
   updateMentorProfileRemote,
 } from "./data/backend";
 
 const STORAGE_KEY = "comfort-companion-demo-state-v1";
+const DEMO_ACCOUNTS_KEY = "comfort-companion-demo-accounts-v1";
+
+export const PIN_LENGTH = 4;
+
+export type AuthResult = { ok: true } | { ok: false; error: string };
+
+// Demo mode has no backend, so accounts live in localStorage. Plaintext PIN
+// is fine here — it's a throwaway local mock, never the real-mode path.
+function readDemoAccounts(): Record<string, { pin: string; username: string }> {
+  try {
+    return JSON.parse(window.localStorage.getItem(DEMO_ACCOUNTS_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
 
 export interface MentorProfileDraft {
   name: string;
@@ -64,6 +91,8 @@ export type HomeFilter = MoodTag | "all";
 interface PersistedState {
   isAuthenticated: boolean;
   phoneNumber: string;
+  username: string;
+  age: number | null;
   coinBalance: number;
   transactions: CoinTransaction[];
   selectedTags: MoodTag[];
@@ -76,6 +105,7 @@ interface PersistedState {
   mentorProfile: MentorProfileDraft;
   mentorEarnings: number;
   mentorSessionsHelped: number;
+  mentorGifts: ReceivedGift[];
 }
 
 const DEFAULT_MENTOR_PHOTO =
@@ -107,6 +137,8 @@ const DEFAULT_MENTOR_PROFILE: MentorProfileDraft = {
 const DEFAULT_STATE: PersistedState = {
   isAuthenticated: false,
   phoneNumber: "",
+  username: "",
+  age: null,
   coinBalance: FREE_TRIAL_COINS,
   transactions: [
     {
@@ -130,16 +162,33 @@ const DEFAULT_STATE: PersistedState = {
   mentorProfile: DEFAULT_MENTOR_PROFILE,
   mentorEarnings: 0,
   mentorSessionsHelped: 0,
+  mentorGifts: [],
 };
 
 interface AppState extends PersistedState {
   hydrated: boolean;
   mentors: Mentor[];
-  requestOtp: (phone: string) => boolean;
-  verifyOtp: (code: string) => boolean;
+  /** True once the phone number step has told us whether to create or enter a PIN. */
+  authIntent: "login" | "signup" | null;
+  checkPhone: (phone: string) => Promise<{ ok: true; exists: boolean } | { ok: false; error: string }>;
+  signUp: (pin: string) => Promise<AuthResult>;
+  logIn: (pin: string) => Promise<AuthResult>;
   logOut: () => void;
+  activateSession: (sessionId: string) => void;
+  dropSession: (sessionId: string) => void;
+  setSessionTopic: (sessionId: string, category: TopicCategory, topic: string) => Promise<void>;
   setHomeFilter: (filter: HomeFilter) => void;
-  addCoins: (amount: number, type: CoinTransaction["type"]) => void;
+  addCoins: (amount: number, type: CoinTransaction["type"], description?: string) => void;
+  /** Credits a purchased pack, plus the one-time first-recharge bonus. Returns the bonus granted. */
+  rechargeCoins: (packCoins: number) => number;
+  sendGift: (
+    sessionId: string,
+    mentor: { id: string; name: string },
+    gift: Gift
+  ) => Promise<{ ok: boolean; error?: string }>;
+  recordGiftReceived: (gift: ReceivedGift) => void;
+  /** Buys a coin pack. Real mode goes through Razorpay; demo mode just credits the coins. */
+  purchasePack: (pack: CoinPack) => Promise<{ ok: boolean; error?: string }>;
   spendCoins: (amount: number, sessionId?: string) => Promise<boolean>;
   toggleTag: (tag: MoodTag) => void;
   setTags: (tags: MoodTag[]) => void;
@@ -190,7 +239,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [mentorsLoading, setMentorsLoading] = useState(!isDemoMode);
 
   useEffect(() => {
-    setState(loadState());
+    const loaded = loadState();
+    // Sessions from before PIN accounts existed were "signed in" by the old
+    // mock OTP and have no username — send them through sign-up instead.
+    setState(loaded.isAuthenticated && !loaded.username ? { ...loaded, isAuthenticated: false } : loaded);
     setHydrated(true);
   }, []);
 
@@ -215,10 +267,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Auth is mocked (see verifyOtp below), but the real backend still needs a
-  // profile/wallet row to exist for this device. Bootstraps it once the
-  // seeker "signs in" and hydrates coinBalance/transactions/sessions from
-  // the server, which is the source of truth in real mode.
+  // Seeker accounts (phone + PIN) are created/verified by the seeker_auth
+  // edge function, which hands back the user id. Once signed in, hydrate
+  // coinBalance/transactions/sessions from the server, which is the source
+  // of truth in real mode.
   useEffect(() => {
     if (isDemoMode || !hydrated || !state.isAuthenticated) return;
     let cancelled = false;
@@ -241,36 +293,268 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     };
   }, [hydrated, state.isAuthenticated]);
 
-  const requestOtp = useCallback((phone: string) => {
+  const [authIntent, setAuthIntent] = useState<"login" | "signup" | null>(null);
+
+  const applyAccount = useCallback(
+    (account: { phone: string; username: string; age: number | null }) => {
+      setState((prev) => ({
+        ...prev,
+        isAuthenticated: true,
+        phoneNumber: account.phone,
+        username: account.username,
+        age: account.age,
+      }));
+    },
+    []
+  );
+
+  const checkPhone = useCallback(async (phone: string) => {
     const digits = phone.replace(/\D/g, "");
-    if (digits.length < 10) return false;
-    setState((prev) => ({ ...prev, phoneNumber: digits }));
-    return true;
+    if (digits.length !== 10) return { ok: false as const, error: "Enter a valid 10-digit phone number." };
+    try {
+      const exists = isDemoMode
+        ? Boolean(readDemoAccounts()[digits])
+        : await seekerLookup(digits);
+      setState((prev) => ({ ...prev, phoneNumber: digits }));
+      setAuthIntent(exists ? "login" : "signup");
+      return { ok: true as const, exists };
+    } catch (err) {
+      return {
+        ok: false as const,
+        error: err instanceof Error ? err.message : "Couldn't reach the server. Try again.",
+      };
+    }
   }, []);
 
-  const verifyOtp = useCallback((code: string) => {
-    if (code.replace(/\D/g, "").length < 4) return false;
-    setState((prev) => ({ ...prev, isAuthenticated: true }));
-    return true;
-  }, []);
+  const signUp = useCallback(
+    async (pin: string): Promise<AuthResult> => {
+      const phone = state.phoneNumber;
+      if (phone.length !== 10 || pin.length !== PIN_LENGTH) {
+        return { ok: false, error: "Enter your phone number and a 4-digit PIN." };
+      }
+      try {
+        if (isDemoMode) {
+          const accounts = readDemoAccounts();
+          if (accounts[phone]) return { ok: false, error: "An account with this number already exists." };
+          const username = `Seeker${Math.floor(1000 + Math.random() * 9000)}`;
+          accounts[phone] = { pin, username };
+          window.localStorage.setItem(DEMO_ACCOUNTS_KEY, JSON.stringify(accounts));
+          applyAccount({ phone, username, age: null });
+        } else {
+          const account = await seekerSignUp(phone, pin);
+          setSeekerId(account.userId);
+          applyAccount(account);
+        }
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : "Could not create your account." };
+      }
+    },
+    [state.phoneNumber, applyAccount]
+  );
+
+  const logIn = useCallback(
+    async (pin: string): Promise<AuthResult> => {
+      const phone = state.phoneNumber;
+      if (phone.length !== 10 || pin.length !== PIN_LENGTH) {
+        return { ok: false, error: "Enter your 4-digit PIN." };
+      }
+      try {
+        if (isDemoMode) {
+          const account = readDemoAccounts()[phone];
+          if (!account || account.pin !== pin) return { ok: false, error: "Wrong PIN. Try again." };
+          applyAccount({ phone, username: account.username, age: null });
+        } else {
+          const account = await seekerLogIn(phone, pin);
+          setSeekerId(account.userId);
+          applyAccount(account);
+        }
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : "Could not sign you in." };
+      }
+    },
+    [state.phoneNumber, applyAccount]
+  );
 
   const logOut = useCallback(() => {
-    setState((prev) => ({ ...prev, isAuthenticated: false }));
+    if (!isDemoMode) setSeekerId(null);
+    setState((prev) => ({
+      ...prev,
+      isAuthenticated: false,
+      username: "",
+      age: null,
+    }));
   }, []);
+
+  const activateSession = useCallback((sessionId: string) => {
+    setState((prev) => ({
+      ...prev,
+      sessions: prev.sessions.map((s) =>
+        s.id === sessionId ? { ...s, status: "active", startedAt: new Date().toISOString() } : s
+      ),
+    }));
+  }, []);
+
+  const dropSession = useCallback((sessionId: string) => {
+    setState((prev) => ({ ...prev, sessions: prev.sessions.filter((s) => s.id !== sessionId) }));
+  }, []);
+
+  const setSessionTopic = useCallback(
+    async (sessionId: string, category: TopicCategory, topic: string) => {
+      setState((prev) => ({
+        ...prev,
+        sessions: prev.sessions.map((s) =>
+          s.id === sessionId ? { ...s, topicCategory: category, topic } : s
+        ),
+      }));
+      if (!isDemoMode) {
+        const seekerId = getSeekerId();
+        if (seekerId) await setSessionTopicRemote(seekerId, sessionId, category, topic);
+      }
+    },
+    []
+  );
 
   const setHomeFilter = useCallback((filter: HomeFilter) => {
     setState((prev) => ({ ...prev, homeFilter: filter }));
   }, []);
 
-  const addCoins = useCallback((amount: number, type: CoinTransaction["type"]) => {
-    setState((prev) => ({
-      ...prev,
-      coinBalance: prev.coinBalance + amount,
-      transactions: [
-        { id: `tx-${Date.now()}`, amount, type, createdAt: new Date().toISOString() },
-        ...prev.transactions,
-      ],
-    }));
+  const addCoins = useCallback(
+    (amount: number, type: CoinTransaction["type"], description?: string) => {
+      setState((prev) => ({
+        ...prev,
+        coinBalance: prev.coinBalance + amount,
+        transactions: [
+          { id: `tx-${Date.now()}-${type}`, amount, type, description, createdAt: new Date().toISOString() },
+          ...prev.transactions,
+        ],
+      }));
+    },
+    []
+  );
+
+  const rechargeCoins = useCallback((packCoins: number) => {
+    const isFirst = !state.transactions.some((tx) => tx.type === "purchase");
+    const bonus = isFirst ? firstRechargeBonus(packCoins) : 0;
+    addCoins(packCoins, "purchase");
+    if (bonus > 0) addCoins(bonus, "bonus", "First-recharge bonus");
+    return bonus;
+  }, [state.transactions, addCoins]);
+
+  const purchasePack = useCallback(
+    async (pack: CoinPack) => {
+      if (isDemoMode) {
+        rechargeCoins(pack.coins);
+        return { ok: true };
+      }
+      try {
+        const seekerId = getSeekerId();
+        if (!seekerId) return { ok: false, error: "Sign in again to add coins." };
+        const before = state.coinBalance;
+        const order = await createPaymentOrder(seekerId, pack.id);
+        await openRazorpayCheckout({
+          ...order,
+          description: `${pack.coins} coins`,
+          contact: state.phoneNumber || undefined,
+        });
+        // The webhook credits the coins a moment after the payment clears.
+        for (let attempt = 0; attempt < 10; attempt++) {
+          const account = await getAccount(seekerId);
+          if (account.coinBalance > before || attempt === 9) {
+            setState((prev) => ({
+              ...prev,
+              coinBalance: account.coinBalance,
+              transactions: account.transactions,
+              sessions: account.sessions,
+            }));
+            return account.coinBalance > before
+              ? { ok: true }
+              : { ok: true, error: "Payment received — your coins will appear shortly." };
+          }
+          await new Promise((r) => setTimeout(r, 1500));
+        }
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : "Payment failed." };
+      }
+    },
+    [rechargeCoins, state.coinBalance, state.phoneNumber]
+  );
+
+  const sendGift = useCallback(
+    async (sessionId: string, mentor: { id: string; name: string }, gift: Gift) => {
+      const description = `${gift.name} to ${mentor.name}`;
+      if (!isDemoMode) {
+        try {
+          const seekerId = getSeekerId();
+          if (!seekerId) return { ok: false, error: "Sign in again to send gifts." };
+          const result = await sendGiftRemote(seekerId, sessionId, gift.id);
+          setState((prev) => ({
+            ...prev,
+            coinBalance: result.coinBalance,
+            transactions: [
+              {
+                id: `tx-${Date.now()}-gift`,
+                amount: -gift.coins,
+                type: "gift_sent",
+                description,
+                createdAt: new Date().toISOString(),
+                relatedSessionId: sessionId,
+              },
+              ...prev.transactions,
+            ],
+          }));
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, error: err instanceof Error ? err.message : "Couldn't send the gift." };
+        }
+      }
+      if (state.coinBalance < gift.coins) return { ok: false, error: "Not enough coins." };
+      const now = new Date().toISOString();
+      setState((prev) => ({
+        ...prev,
+        coinBalance: prev.coinBalance - gift.coins,
+        transactions: [
+          {
+            id: `tx-${Date.now()}-gift`,
+            amount: -gift.coins,
+            type: "gift_sent",
+            description,
+            createdAt: now,
+            relatedSessionId: sessionId,
+          },
+          ...prev.transactions,
+        ],
+        // Demo mode has no separate Saathi device, so credit them here.
+        mentorEarnings: prev.mentorEarnings + saathiGiftCoins(gift.coins),
+        mentorGifts: [
+          {
+            id: `gift-${Date.now()}`,
+            giftId: gift.id,
+            giftName: gift.name,
+            coins: saathiGiftCoins(gift.coins),
+            from: prev.username || "A seeker",
+            createdAt: now,
+          },
+          ...prev.mentorGifts,
+        ],
+      }));
+      return { ok: true };
+    },
+    [state.coinBalance]
+  );
+
+  const recordGiftReceived = useCallback((gift: ReceivedGift) => {
+    setState((prev) =>
+      prev.mentorGifts.some((g) => g.id === gift.id)
+        ? prev
+        : {
+            ...prev,
+            mentorEarnings: prev.mentorEarnings + gift.coins,
+            mentorGifts: [gift, ...prev.mentorGifts],
+          }
+    );
   }, []);
 
   const spendCoins = useCallback(
@@ -354,7 +638,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         mentorId,
         mode,
         startedAt: new Date().toISOString(),
-        status: "active",
+        status: mode === "video" ? "ringing" : "active",
         totalCoinsCharged: 0,
         ratePerMinute,
       };
@@ -456,11 +740,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     hydrated,
     mentors,
     mentorsLoading,
-    requestOtp,
-    verifyOtp,
+    authIntent,
+    checkPhone,
+    signUp,
+    logIn,
     logOut,
+    activateSession,
+    dropSession,
+    setSessionTopic,
     setHomeFilter,
     addCoins,
+    rechargeCoins,
+    purchasePack,
+    sendGift,
+    recordGiftReceived,
     spendCoins,
     toggleTag,
     setTags,

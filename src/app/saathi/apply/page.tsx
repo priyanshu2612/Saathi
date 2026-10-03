@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { CaretLeft, Plus, X, CheckCircle, ShieldCheck } from "@phosphor-icons/react";
+import { CaretLeft, Plus, X, CheckCircle, ShieldCheck, Camera, Images } from "@phosphor-icons/react";
+import BottomSheet from "@/components/ui/BottomSheet";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import Chip from "@/components/ui/Chip";
 import { useAppState } from "@/lib/store";
@@ -90,7 +91,9 @@ export default function SaathiApplyPage() {
   const [sameAsPhone, setSameAsPhone] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -144,12 +147,14 @@ export default function SaathiApplyPage() {
   })();
 
   const handlePhotoPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []).slice(0, MAX_PHOTOS - draft.photos.length);
     e.target.value = "";
-    if (!file) return;
+    setPhotoSheetOpen(false);
+    if (files.length === 0) return;
+    setError(null);
     try {
-      const dataUrl = await resizeImageToDataUrl(file);
-      set("photos", [...draft.photos, dataUrl].slice(0, MAX_PHOTOS));
+      const dataUrls = await Promise.all(files.map((f) => resizeImageToDataUrl(f)));
+      setDraft((d) => ({ ...d, photos: [...d.photos, ...dataUrls].slice(0, MAX_PHOTOS) }));
     } catch {
       setError("Couldn't read that photo — try a different one.");
     }
@@ -478,7 +483,7 @@ export default function SaathiApplyPage() {
               {draft.photos.length < MAX_PHOTOS && (
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => setPhotoSheetOpen(true)}
                   className="tap-target flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-xl2 border-2 border-dashed border-linen-200 text-dusk-400"
                 >
                   <Plus size={20} />
@@ -486,14 +491,43 @@ export default function SaathiApplyPage() {
                 </button>
               )}
             </div>
+            {/* Two inputs: `capture` opens the camera directly, the other opens the gallery. */}
             <input
-              ref={fileInputRef}
+              ref={cameraInputRef}
               type="file"
               accept="image/*"
               capture="user"
               onChange={handlePhotoPick}
               className="hidden"
             />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoPick}
+              className="hidden"
+            />
+            <BottomSheet open={photoSheetOpen} onClose={() => setPhotoSheetOpen(false)} title="Add a photo">
+              <div className="mt-4 flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="tap-target flex items-center gap-3 rounded-xl2 border border-linen-200 bg-linen-100 px-4 py-3.5 text-left text-[15px] font-medium text-dusk-900"
+                >
+                  <Camera size={22} className="text-warmth-500" />
+                  Take a photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="tap-target flex items-center gap-3 rounded-xl2 border border-linen-200 bg-linen-100 px-4 py-3.5 text-left text-[15px] font-medium text-dusk-900"
+                >
+                  <Images size={22} className="text-warmth-500" />
+                  Choose from gallery
+                </button>
+              </div>
+            </BottomSheet>
           </div>
         )}
 

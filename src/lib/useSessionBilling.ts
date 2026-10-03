@@ -53,7 +53,8 @@ export function useSessionBilling(session: SessionRecord | undefined, mentor: Me
 
   useEffect(() => {
     if (!session) return;
-    setShowLowBalance(coinBalance < session.ratePerMinute && coinBalance > 0 && !ended);
+    // Nudge ~3 minutes before the balance runs out.
+    setShowLowBalance(coinBalance < session.ratePerMinute * 3 && coinBalance > 0 && !ended);
   }, [coinBalance, session, ended]);
 
   const endNow = () => {

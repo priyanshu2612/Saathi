@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
-  User,
   ClockCounterClockwise,
   ShieldCheck,
   FileText,
@@ -35,7 +34,7 @@ function Row({
   onClick,
   right,
 }: {
-  icon: typeof User;
+  icon: typeof ClockCounterClockwise;
   iconBg: string;
   iconColor: string;
   title: string;
@@ -66,13 +65,22 @@ function Row({
   );
 }
 
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3.5">
+      <p className="text-[13px] text-dusk-400">{label}</p>
+      <p className="text-[14px] font-medium text-dusk-900">{value}</p>
+    </div>
+  );
+}
+
 function Divider() {
   return <div className="h-px bg-linen-200/60" />;
 }
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { phoneNumber, coinBalance, logOut } = useAppState();
+  const { phoneNumber, username, age, coinBalance, logOut } = useAppState();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
 
@@ -104,16 +112,21 @@ export default function ProfilePage() {
       </div>
 
       <div className="mt-6 flex-1 px-5 pb-6">
+        <SectionLabel>Your details</SectionLabel>
+        <div className="mb-6 overflow-hidden rounded-xl3 border border-linen-200/60 bg-card">
+          <DetailRow label="Username" value={username || "—"} />
+          <Divider />
+          <DetailRow label="Age" value={age ? String(age) : "Not set"} />
+          <Divider />
+          <DetailRow label="Phone number" value={phoneNumber ? `+91 ${phoneNumber}` : "—"} />
+          <Divider />
+          {/* The PIN is stored only as a hash on the server, so it can't be
+              shown back — the dots just confirm one is set. */}
+          <DetailRow label="PIN code" value="••••" />
+        </div>
+
         <SectionLabel>Account</SectionLabel>
         <div className="overflow-hidden rounded-xl3 border border-linen-200/60 bg-card">
-          <Row
-            icon={User}
-            iconBg="bg-sky-50 dark:bg-sky-400/10"
-            iconColor="text-sky-600 dark:text-sky-300"
-            title="Personal Info"
-            subtitle={phoneNumber ? `+91 ${phoneNumber}` : "Name, email, phone"}
-          />
-          <Divider />
           <Row
             icon={ClockCounterClockwise}
             iconBg="bg-amber-50 dark:bg-amber-400/10"

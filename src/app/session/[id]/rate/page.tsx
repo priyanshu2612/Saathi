@@ -7,6 +7,7 @@ import { Star } from "@phosphor-icons/react";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import Chip from "@/components/ui/Chip";
 import { useAppState } from "@/lib/store";
+import { useToast } from "@/components/ui/Toast";
 
 const TAGS = ["Felt heard", "Good listener", "Helped me calm down", "Would talk again"];
 
@@ -19,26 +20,17 @@ export default function RateSessionPage() {
 
   const [rating, setRating] = useState(0);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  const { showToast } = useToast();
 
   if (!mentor) {
     router.replace("/home");
     return null;
   }
 
-  if (submitted) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-        <p className="font-display text-[22px] text-dusk-900">Thank you for sharing that.</p>
-        <p className="mt-2 text-[14px] text-dusk-400">
-          Your feedback helps {mentor.name} — and keeps this a good place for the next person too.
-        </p>
-        <div className="mt-8 w-full">
-          <PrimaryButton onClick={() => router.push("/home")}>Back to home</PrimaryButton>
-        </div>
-      </div>
-    );
-  }
+  const handleSubmit = () => {
+    showToast(`Thank you for sharing that. Your feedback helps ${mentor.name}.`);
+    router.push("/home");
+  };
 
   return (
     <div className="flex min-h-screen flex-col px-6 pt-16 pb-8">
@@ -46,7 +38,7 @@ export default function RateSessionPage() {
         <div className="relative h-20 w-20 overflow-hidden rounded-full">
           <Image src={mentor.photoUrl} alt={mentor.name} fill className="object-cover" />
         </div>
-        <h1 className="mt-4 font-display text-[22px] text-dusk-900">
+        <h1 className="mt-4 text-center font-display text-[22px] text-dusk-900">
           How did it feel talking to {mentor.name}?
         </h1>
 
@@ -82,7 +74,7 @@ export default function RateSessionPage() {
       </button>
 
       <div className="mt-auto pt-10">
-        <PrimaryButton disabled={rating === 0} onClick={() => setSubmitted(true)}>
+        <PrimaryButton disabled={rating === 0} onClick={handleSubmit}>
           Submit
         </PrimaryButton>
         <button

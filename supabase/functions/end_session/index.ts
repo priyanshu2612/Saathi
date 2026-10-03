@@ -16,12 +16,22 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // A call hung up while still ringing was never connected — mark it
+  // cancelled rather than completed so it never shows up in history.
+  const endedAt = new Date().toISOString();
+  await supabase
+    .from("sessions")
+    .update({ status: "cancelled", ended_at: endedAt })
+    .eq("id", sessionId)
+    .eq("status", "ringing");
+
   const { data: session, error } = await supabase
     .from("sessions")
-    .update({ status: "completed", ended_at: new Date().toISOString() })
+    .update({ status: "completed", ended_at: endedAt })
     .eq("id", sessionId)
+    .eq("status", "active")
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     return json({ error: error.message }, { status: 500 });

@@ -17,8 +17,10 @@ minute), per the PRD and design system docs.
   (`src/lib/data/`) — set `NEXT_PUBLIC_DEMO_MODE=false` with real Supabase
   credentials to switch over. Sign-in and coin purchases are still
   intentionally mocked; see "What's still mocked on purpose" below.
-- **Video/audio:** out of scope per the PRD (Phase 2). The live session
-  screen is chat-only.
+- **Video calling:** real, via [Agora](https://www.agora.io). A seeker's
+  video call rings the Saathi (polled via `call_poll`); the Saathi accepts on
+  the partner dashboard and both join an Agora channel with tokens minted by
+  the `agora_token` edge function. Audio calls are still simulated.
 
 ## Running it
 
@@ -49,10 +51,11 @@ deploying the actual project:
    personal-details block, etc).
 3. Deploy the Edge Functions in `supabase/functions/*` with `supabase
    functions deploy <name>`. Set `SUPABASE_SERVICE_ROLE_KEY` as a function
-   secret (Project Settings → Edge Functions). The Razorpay function
-   (`razorpay_webhook`) is not currently wired to the UI — coin purchases are
-   still a local-only demo action (see below) — so it's optional to deploy
-   for now; if you do, it also needs `RAZORPAY_WEBHOOK_SECRET`.
+   secret (Project Settings → Edge Functions). Coin purchases use
+   Razorpay: deploy `create_order` and `razorpay_webhook` and set the secrets
+   `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` and `RAZORPAY_WEBHOOK_SECRET`.
+   In the Razorpay dashboard, point a webhook for the `payment.captured`
+   event at the `razorpay_webhook` function URL. Use test-mode keys first.
 4. Copy `.env.local.example` to `.env.local`, fill in
    `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Project
    Settings → API), and set `NEXT_PUBLIC_DEMO_MODE=false`.
@@ -61,11 +64,22 @@ deploying the actual project:
    `verification_status = 'approved'` — no admin UI needed yet, per the
    design doc.
 
+### Video calling setup (Agora)
+
+1. Create an Agora project with **App ID + App Certificate** enabled.
+2. Apply `supabase/migrations/0008_seeker_accounts_and_calls.sql`.
+3. Set secrets and deploy the new/changed functions:
+
+```bash
+supabase secrets set AGORA_APP_ID=... AGORA_APP_CERTIFICATE=...
+supabase functions deploy seeker_auth call_poll call_respond agora_token set_session_topic start_session end_session get_account
+```
+
 ### What's still mocked on purpose
 
-- **Sign-in** (`requestOtp`/`verifyOtp` in `src/lib/store.tsx`) is a UI-only
-  stub — no SMS provider is configured. Since there's no real Supabase Auth
-  session, every Edge Function takes the acting user's id as a plain
+- **Sign-in** is phone number + 4-digit PIN (`seeker_auth` edge function; the
+  PIN is stored as a salted PBKDF2 hash, 5 wrong tries locks the account for
+  15 minutes). There's no SMS/OTP step and no real Supabase Auth session, so every Edge Function takes the acting user's id as a plain
   parameter and runs with the service-role key (bypassing RLS) rather than
   reading `auth.uid()`. The client generates a random id per device on first
   use (`bootstrap_profile` function, wrapped by `ensureSeekerId()` in
@@ -74,11 +88,10 @@ deploying the actual project:
   `profiles.id` foreign key is satisfied. This is fine for a demo/pilot; swap
   in real phone-OTP auth before this handles real user data, and switch the
   Edge Functions to trust `auth.uid()` from the caller's JWT instead.
-- **Coin purchases** (the wallet top-up flow) are still a local `addCoins`
-  call, not a real payment. `supabase/functions/razorpay_webhook` is written
-  and ready per the PRD, just not invoked by the UI yet — wire up a Razorpay
-  checkout call from `src/app/wallet/page.tsx` and deploy the webhook when
-  you're ready to accept real payments.
+- **Coin purchases** open Razorpay Checkout (`create_order` makes the order,
+  `razorpay_webhook` credits coins and the first-recharge bonus). Demo mode
+  still just credits coins locally. Keep pack prices in sync between
+  `src/lib/mock-data.ts` and `supabase/functions/_shared/packs.ts`.
 - **Per-minute billing** calls a new `session_tick` Edge Function roughly
   every 6 seconds from the live session screen
   (`src/lib/useSessionBilling.ts`), rather than relying on `billing_tick`'s

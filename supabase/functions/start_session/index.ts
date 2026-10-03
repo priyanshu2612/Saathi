@@ -48,6 +48,23 @@ Deno.serve(async (req) => {
     return json({ error: "Not enough coins for a minute of this session." }, { status: 402 });
   }
 
+  // Video calls ring the Saathi first; billing only starts once they accept
+  // (call_respond resets started_at and flips the status to 'active').
+  const isVideo = mode === "video";
+
+  if (isVideo) {
+    const ringCutoff = new Date(Date.now() - 60 * 1000).toISOString();
+    const { data: busy } = await supabase
+      .from("sessions")
+      .select("id")
+      .eq("mentor_id", mentorId)
+      .or(`status.eq.active,and(status.eq.ringing,started_at.gte.${ringCutoff})`)
+      .limit(1);
+    if (busy && busy.length > 0) {
+      return json({ error: "This Saathi is on another call." }, { status: 409 });
+    }
+  }
+
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
     .insert({
@@ -55,6 +72,7 @@ Deno.serve(async (req) => {
       mentor_id: mentorId,
       mode,
       rate_per_minute: ratePerMinute,
+      status: isVideo ? "ringing" : "active",
     })
     .select()
     .single();
