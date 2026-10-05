@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
       amount: pack.priceInr * 100, // paise
       currency: "INR",
       receipt: `${packId}-${Date.now()}`.slice(0, 40),
-      notes: { user_id: userId, pack_id: packId },
+      notes: { app: "sukoon", user_id: userId, pack_id: packId },
     }),
   });
   if (!res.ok) return json({ error: "Couldn't start the payment." }, { status: 502 });

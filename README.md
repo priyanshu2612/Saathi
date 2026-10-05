@@ -56,6 +56,10 @@ deploying the actual project:
    `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` and `RAZORPAY_WEBHOOK_SECRET`.
    In the Razorpay dashboard, point a webhook for the `payment.captured`
    event at the `razorpay_webhook` function URL. Use test-mode keys first.
+   Phone OTP (optional, off by default): deploy `phone_otp`, apply migration
+   `0013_phone_otp.sql`, set the secrets `MSG91_AUTH_KEY`, `MSG91_TEMPLATE_ID`
+   (a DLT-approved template using `##OTP##`) and `OTP_REQUIRED=true`, then set
+   `NEXT_PUBLIC_OTP_ENABLED=true` in the web app's environment.
 4. Copy `.env.local.example` to `.env.local`, fill in
    `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Project
    Settings → API), and set `NEXT_PUBLIC_DEMO_MODE=false`.

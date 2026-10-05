@@ -121,11 +121,8 @@ export default function SaathiApplyPage() {
   const isValid = (() => {
     switch (step) {
       case 1:
-        return (
-          draft.fullName.trim().length > 1 &&
-          Number(ageText) >= 18 &&
-          draft.cityState.trim().length > 1
-        );
+        // City & state is optional.
+        return draft.fullName.trim().length > 1 && Number(ageText) >= 18;
       case 2:
         return draft.phone.length === 10 && (sameAsPhone || draft.whatsappNumber.length === 10);
       case 3:
@@ -204,8 +201,7 @@ export default function SaathiApplyPage() {
           <div className="rounded-xl2 bg-sage-50 p-4">
             <p className="text-[13px] text-dusk-700">
               <span className="font-semibold">Kaise kaam karta hai:</span> 2 minute mein form
-              bharein → hum har application khud review karte hain → shortlist hone par aapko ek
-              personal access code milega → us code se go live karein.
+              bharein → hum review karenge → shortlist hone par access code milega → go live!
             </p>
           </div>
 
@@ -274,12 +270,12 @@ export default function SaathiApplyPage() {
             <SocialProof className="mt-4" />
             <div className="mt-6 space-y-4">
               <div>
-                <Label>Full name</Label>
+                <Label>Name</Label>
                 <input
                   value={draft.fullName}
                   onChange={(e) => set("fullName", e.target.value)}
                   className={fieldClass}
-                  placeholder="Aapka naam, jaise Priya Sharma"
+                  placeholder="Aapka naam, jaise Priya"
                 />
               </div>
               <div>
@@ -297,7 +293,7 @@ export default function SaathiApplyPage() {
                 />
               </div>
               <div>
-                <Label>City &amp; state</Label>
+                <Label>City &amp; state (optional)</Label>
                 <input
                   value={draft.cityState}
                   onChange={(e) => set("cityState", e.target.value)}

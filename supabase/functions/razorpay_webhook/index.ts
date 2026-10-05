@@ -22,6 +22,11 @@ Deno.serve(async (req) => {
   }
 
   const payment = payload.payload.payment.entity;
+  // This Razorpay account may also serve other apps; their payments reach
+  // this webhook too. Acknowledge (so Razorpay doesn't retry) and ignore.
+  if (payment.notes?.app !== "sukoon") {
+    return Response.json({ ignored: true });
+  }
   // Notes were set server-side by create_order; the pack table, not the
   // notes, decides how many coins this payment is worth.
   const userId = payment.notes?.user_id;

@@ -6,6 +6,8 @@ import PrimaryButton from "@/components/ui/PrimaryButton";
 import Logo from "@/components/ui/Logo";
 import BannerCarousel from "@/components/auth/BannerCarousel";
 import { useAppState } from "@/lib/store";
+import { isDemoMode } from "@/lib/supabase/client";
+import { OTP_ENABLED } from "@/lib/data/backend";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -20,7 +22,9 @@ export default function SignInPage() {
     const result = await checkPhone(phone);
     setLoading(false);
     if (result.ok) {
-      router.push("/signin/pin");
+      // New numbers verify by SMS first; returning users just enter their PIN.
+      const needsOtp = OTP_ENABLED && !isDemoMode && !result.exists;
+      router.push(needsOtp ? "/signin/otp" : "/signin/pin");
     } else {
       setError(result.error);
     }
@@ -58,7 +62,9 @@ export default function SignInPage() {
           {loading ? "Checking…" : "Continue"}
         </PrimaryButton>
         <p className="mt-4 text-center text-[12px] text-dusk-400">
-          Just your phone number and a 4-digit PIN — no SMS code needed.
+          {OTP_ENABLED && !isDemoMode
+            ? "New here? We'll text you a code once to verify your number. After that, just a 4-digit PIN."
+            : "Just your phone number and a 4-digit PIN — no SMS code needed."}
         </p>
       </div>
     </div>

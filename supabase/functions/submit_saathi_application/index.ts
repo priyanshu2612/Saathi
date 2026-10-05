@@ -51,7 +51,6 @@ Deno.serve(async (req) => {
   const required: (keyof Body)[] = [
     "fullName",
     "age",
-    "cityState",
     "phone",
     "whatsappNumber",
     "profession",
@@ -97,7 +96,7 @@ Deno.serve(async (req) => {
     id: applicationId,
     full_name: body.fullName,
     age: body.age,
-    city_state: body.cityState,
+    city_state: body.cityState?.trim() || null,
     phone: body.phone,
     whatsapp_number: body.whatsappNumber,
     languages: body.languages ?? [],

@@ -90,6 +90,17 @@ export async function seekerLookup(phone: string): Promise<boolean> {
   return exists;
 }
 
+/** Whether new seekers must verify their phone with an SMS code. Flip on once MSG91 + OTP_REQUIRED are set up. */
+export const OTP_ENABLED = process.env.NEXT_PUBLIC_OTP_ENABLED === "true";
+
+export async function sendPhoneOtp(phone: string): Promise<void> {
+  await invoke("phone_otp", { action: "send", phone });
+}
+
+export async function verifyPhoneOtp(phone: string, code: string): Promise<void> {
+  await invoke("phone_otp", { action: "verify", phone, code });
+}
+
 export async function seekerSignUp(phone: string, pin: string): Promise<SeekerAccount> {
   return invoke<SeekerAccount>("seeker_auth", { action: "signup", phone, pin });
 }

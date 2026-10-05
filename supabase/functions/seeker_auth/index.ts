@@ -18,6 +18,7 @@ import { hashPin, newSalt, timingSafeEqual } from "../_shared/pin.ts";
 const FREE_TRIAL_COINS = 60;
 const MAX_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
+const VERIFIED_WINDOW_MINUTES = 15;
 
 const validPhone = (v: string) => /^[0-9]{10}$/.test(v);
 const validPin = (v: unknown): v is string => typeof v === "string" && /^[0-9]{4}$/.test(v);
@@ -114,6 +115,24 @@ Deno.serve(async (req) => {
       return json({ error: "An account with this number already exists." }, { status: 409 });
     }
 
+    // When OTP_REQUIRED=true, the phone must have passed phone_otp's verify in
+    // the last VERIFIED_WINDOW_MINUTES. Turn it on once MSG91 is configured.
+    const otpRequired = Deno.env.get("OTP_REQUIRED") === "true";
+    if (otpRequired) {
+      const { data: otp } = await supabase
+        .from("phone_otps")
+        .select("verified_at")
+        .eq("phone", phone)
+        .maybeSingle();
+      const verifiedAt = otp?.verified_at ? new Date(otp.verified_at).getTime() : 0;
+      if (Date.now() - verifiedAt > VERIFIED_WINDOW_MINUTES * 60000) {
+        return json(
+          { error: "Please verify your phone number first.", needsOtp: true },
+          { status: 403 }
+        );
+      }
+    }
+
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email: `seeker-${crypto.randomUUID()}@comfort-companion.local`,
       password: crypto.randomUUID(),
@@ -162,6 +181,9 @@ Deno.serve(async (req) => {
       await rollback();
       return json({ error: "Could not create account. Please try again." }, { status: 500 });
     }
+
+    // The verification is single-use.
+    if (otpRequired) await supabase.from("phone_otps").delete().eq("phone", phone);
 
     await supabase.from("profiles").update({ display_name: username }).eq("id", userId);
     await supabase.from("wallets").insert({ user_id: userId, coin_balance: 0 });
