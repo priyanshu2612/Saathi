@@ -16,6 +16,10 @@ const LANGUAGES = [
   "English", "Hindi", "Hinglish", "Marathi", "Gujarati", "Punjabi",
   "Bengali", "Tamil", "Telugu", "Kannada", "Malayalam",
 ];
+const TOPICS = [
+  "Casual & social", "Dating & relationships", "College life",
+  "Work & career", "Life & emotions", "Difficult conversations",
+];
 const MODES = ["Chat", "Audio call", "Video call"];
 const HOURS = ["5 to 10", "10 to 20", "20 to 30", "30+"];
 const TIMES = ["Morning", "Afternoon", "Evening", "Late night"];
@@ -46,10 +50,8 @@ const EMPTY_DRAFT: Draft = {
   confirmedContactConsent: false,
 };
 
-// Form steps in order. Step 0 is the intro and TOTAL_STEPS + 1 the thank-you.
-const STEPS = ["basics", "languages", "availability", "photos", "confirm"] as const;
-const TOTAL_STEPS = STEPS.length;
-const MIN_PHOTOS = 1;
+const TOTAL_STEPS = 7;
+const MIN_PHOTOS = 3;
 const MAX_PHOTOS = 6;
 
 function toggleIn<T>(list: T[], value: T): T[] {
@@ -85,7 +87,7 @@ function Label({ children, hint }: { children: React.ReactNode; hint?: string })
 export default function SaathiApplyPage() {
   const router = useRouter();
   const { submitSaathiApplication } = useAppState();
-  const [step, setStep] = useState(0); // 0 = intro, 1..TOTAL_STEPS = form, TOTAL_STEPS + 1 = thank you
+  const [step, setStep] = useState(0); // 0 = intro, 1..7 = form, 8 = thank you
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [ageText, setAgeText] = useState("");
   const [sameAsPhone, setSameAsPhone] = useState(true);
@@ -99,8 +101,6 @@ export default function SaathiApplyPage() {
   useEffect(() => {
     trackApplyStep(step);
   }, [step]);
-
-  const stepKey = STEPS[step - 1];
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -119,27 +119,26 @@ export default function SaathiApplyPage() {
   };
 
   const isValid = (() => {
-    switch (stepKey) {
-      case "basics":
-        return (
-          draft.fullName.trim().length > 1 &&
-          Number(ageText) >= 18 &&
-          draft.profession.trim().length > 0 &&
-          draft.phone.length === 10 &&
-          (sameAsPhone || draft.whatsappNumber.length === 10)
-        );
-      case "languages":
+    switch (step) {
+      case 1:
+        // City & state is optional.
+        return draft.fullName.trim().length > 1 && Number(ageText) >= 18;
+      case 2:
+        return draft.phone.length === 10 && (sameAsPhone || draft.whatsappNumber.length === 10);
+      case 3:
         return draft.languages.length > 0 || draft.languagesOther.trim().length > 0;
-      case "availability":
+      case 4:
+        return draft.profession.trim().length > 0 && draft.topics.length > 0;
+      case 5:
         return (
           draft.modes.length > 0 &&
           draft.hoursPerWeek.length > 0 &&
           draft.availabilityTimes.length > 0 &&
           draft.quietSpace.length > 0
         );
-      case "photos":
+      case 6:
         return draft.photos.length >= MIN_PHOTOS;
-      case "confirm":
+      case 7:
         return (
           draft.confirmedAgeAndTrue &&
           draft.confirmedIdCheck &&
@@ -160,8 +159,6 @@ export default function SaathiApplyPage() {
     try {
       const dataUrls = await Promise.all(files.map((f) => resizeImageToDataUrl(f)));
       setDraft((d) => ({ ...d, photos: [...d.photos, ...dataUrls].slice(0, MAX_PHOTOS) }));
-      // One photo is enough — go straight to the next step without another tap.
-      if (stepKey === "photos") goNext();
     } catch {
       setError("Couldn't read that photo — try a different one.");
     }
@@ -266,7 +263,7 @@ export default function SaathiApplyPage() {
       </div>
 
       <div className="flex-1 px-6 pb-4 pt-6">
-        {stepKey === "basics" && (
+        {step === 1 && (
           <div>
             <h2 className="font-display text-[22px] text-dusk-900">About you</h2>
             <p className="mt-1 text-[13px] text-dusk-400">Just the basics, for now.</p>
@@ -296,14 +293,26 @@ export default function SaathiApplyPage() {
                 />
               </div>
               <div>
-                <Label>Profession</Label>
+                <Label>City &amp; state (optional)</Label>
                 <input
-                  value={draft.profession}
-                  onChange={(e) => set("profession", e.target.value)}
+                  value={draft.cityState}
+                  onChange={(e) => set("cityState", e.target.value)}
                   className={fieldClass}
-                  placeholder="e.g. Student, Software Engineer, Teacher"
+                  placeholder="e.g. Pune, Maharashtra"
                 />
               </div>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div>
+            <h2 className="font-display text-[22px] text-dusk-900">How can we reach you</h2>
+            <p className="mt-1 text-[13px] text-dusk-400">
+              We&apos;ll only use this to send your access code and stay in touch about your
+              application.
+            </p>
+            <div className="mt-6 space-y-4">
               <div>
                 <Label>Phone number</Label>
                 <div className="flex items-center overflow-hidden rounded-xl2 border border-linen-200 bg-linen-100 focus-within:border-warmth-500">
@@ -347,7 +356,7 @@ export default function SaathiApplyPage() {
           </div>
         )}
 
-        {stepKey === "languages" && (
+        {step === 3 && (
           <div>
             <h2 className="font-display text-[22px] text-dusk-900">Languages</h2>
             <p className="mt-1 text-[13px] text-dusk-400">
@@ -375,7 +384,30 @@ export default function SaathiApplyPage() {
           </div>
         )}
 
-        {stepKey === "availability" && (
+        {step === 4 && (
+          <div>
+            <h2 className="font-display text-[22px] text-dusk-900">About you</h2>
+            <div>
+              <Label>Profession</Label>
+              <input
+                value={draft.profession}
+                onChange={(e) => set("profession", e.target.value)}
+                className={fieldClass}
+                placeholder="e.g. Student, Software Engineer, Teacher"
+              />
+            </div>
+            <div className="mt-6">
+              <p className="text-[14px] font-medium text-dusk-700">What would you like to talk about?</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {TOPICS.map((t) => (
+                  <Chip key={t} label={t} selected={draft.topics.includes(t)} onClick={() => set("topics", toggleIn(draft.topics, t))} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 5 && (
           <div>
             <h2 className="font-display text-[22px] text-dusk-900">Your availability</h2>
             <div>
@@ -418,11 +450,11 @@ export default function SaathiApplyPage() {
           </div>
         )}
 
-        {stepKey === "photos" && (
+        {step === 6 && (
           <div>
             <h2 className="font-display text-[22px] text-dusk-900">Add your photos</h2>
             <p className="mt-1 text-[13px] text-dusk-400">
-              Add a clear, friendly photo of yourself.
+              Add at least {MIN_PHOTOS} clear, friendly photos of yourself — up to {MAX_PHOTOS}.
               Seekers feel more comfortable reaching out when they can see who they&apos;re
               talking to.
             </p>
@@ -505,7 +537,7 @@ export default function SaathiApplyPage() {
           </div>
         )}
 
-        {stepKey === "confirm" && (
+        {step === 7 && (
           <div>
             <h2 className="font-display text-[22px] text-dusk-900">Before you submit</h2>
             <p className="mt-1 text-[13px] text-dusk-400">
@@ -553,7 +585,7 @@ export default function SaathiApplyPage() {
       </div>
 
       <div className="sticky bottom-0 z-10 border-t border-linen-200 bg-linen-50 px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-3">
-        {error && stepKey !== "confirm" && <p className="mb-2 text-[13px] text-warmth-600">{error}</p>}
+        {error && step !== 7 && <p className="mb-2 text-[13px] text-warmth-600">{error}</p>}
         <p className="mb-2.5 flex items-start gap-2 rounded-xl2 bg-sage-400/10 px-3 py-2 text-left text-[12px] font-medium text-sage-600">
           <ShieldCheck size={15} weight="fill" className="mt-0.5 shrink-0 text-sage-500" />
           Yeh ek 100% safe platform hai. Aapki details aapki permission ke bina kabhi live nahi hongi.

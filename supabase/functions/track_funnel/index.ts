@@ -10,16 +10,13 @@ Deno.serve(async (req) => {
   const preflight = handleCors(req);
   if (preflight) return preflight;
 
-  const { visitorId, step, formVersion = 1 } = await req.json();
+  const { visitorId, step } = await req.json();
   if (
     typeof visitorId !== "string" ||
     !/^[A-Za-z0-9-]{8,64}$/.test(visitorId) ||
     !Number.isInteger(step) ||
     step < 0 ||
-    step > 8 ||
-    !Number.isInteger(formVersion) ||
-    formVersion < 1 ||
-    formVersion > 20
+    step > 8
   ) {
     return json({ error: "Invalid event." }, { status: 400 });
   }
@@ -28,7 +25,7 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
-  const { error } = await supabase.from("saathi_funnel_events").insert({ visitor_id: visitorId, step, form_version: formVersion });
+  const { error } = await supabase.from("saathi_funnel_events").insert({ visitor_id: visitorId, step });
   if (error) return json({ error: "Couldn't record that." }, { status: 500 });
   return json({ ok: true });
 });
