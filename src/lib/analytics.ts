@@ -1,6 +1,10 @@
 import { isDemoMode } from "@/lib/supabase/client";
 import { trackFunnelStep } from "@/lib/data/backend";
 
+// Bump when the form's steps change, so funnel reports don't mix old and new
+// step numbers. Keep in sync with the labels in the saathi_funnel view.
+const FORM_VERSION = 2;
+
 const VISITOR_KEY = "saathi-apply-visitor-id";
 
 // Random per-browser id so we can count distinct people, not page loads. Holds
@@ -23,5 +27,5 @@ export function trackApplyStep(step: number) {
   if (isDemoMode || typeof window === "undefined") return;
   const visitorId = getVisitorId();
   if (!visitorId) return;
-  trackFunnelStep(visitorId, step).catch(() => {});
+  trackFunnelStep(visitorId, step, FORM_VERSION).catch(() => {});
 }
