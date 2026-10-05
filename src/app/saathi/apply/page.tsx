@@ -51,8 +51,9 @@ const EMPTY_DRAFT: Draft = {
 };
 
 const TOTAL_STEPS = 7;
-const MIN_PHOTOS = 3;
+const MIN_PHOTOS = 1;
 const MAX_PHOTOS = 6;
+const PHOTO_STEP = 6;
 
 function toggleIn<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -159,6 +160,8 @@ export default function SaathiApplyPage() {
     try {
       const dataUrls = await Promise.all(files.map((f) => resizeImageToDataUrl(f)));
       setDraft((d) => ({ ...d, photos: [...d.photos, ...dataUrls].slice(0, MAX_PHOTOS) }));
+      // One photo is enough — go straight to the next step without another tap.
+      if (step === PHOTO_STEP) goNext();
     } catch {
       setError("Couldn't read that photo — try a different one.");
     }
@@ -454,7 +457,7 @@ export default function SaathiApplyPage() {
           <div>
             <h2 className="font-display text-[22px] text-dusk-900">Add your photos</h2>
             <p className="mt-1 text-[13px] text-dusk-400">
-              Add at least {MIN_PHOTOS} clear, friendly photos of yourself — up to {MAX_PHOTOS}.
+              Add a clear, friendly photo of yourself.
               Seekers feel more comfortable reaching out when they can see who they&apos;re
               talking to.
             </p>
