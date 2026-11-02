@@ -57,7 +57,13 @@ Deno.serve(async (req) => {
       order_tags: { app: "sukoon", user_id: String(userId), pack_id: String(packId) },
     }),
   });
-  if (!res.ok) return json({ error: "Couldn't start the payment." }, { status: 502 });
+  if (!res.ok) {
+    const detail = await res.text();
+    console.error("cashfree create order failed", mode, res.status, detail);
+    let reason = detail.slice(0, 200);
+    try { reason = JSON.parse(detail).message ?? reason; } catch (_) { /* keep raw */ }
+    return json({ error: `Couldn't start the payment (${mode}, ${res.status}: ${reason})` }, { status: 502 });
+  }
 
   const order = await res.json();
   return json({ orderId: order.order_id, paymentSessionId: order.payment_session_id, mode });

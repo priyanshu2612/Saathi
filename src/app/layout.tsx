@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Comfort Companion",
+  title: "Sukoon",
   description: "Talk to a trained, verified listener — whenever you need one.",
 };
 

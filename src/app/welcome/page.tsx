@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ShieldCheck, ChatCircleDots, HeartStraight } from "@phosphor-icons/react";
 import Logo from "@/components/ui/Logo";
+import LegalLinks from "@/components/ui/LegalLinks";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 
 const REASONS = [
@@ -68,6 +69,7 @@ export default function WelcomePage() {
         <p className="mt-4 text-center text-[12px] text-dusk-400">
           Free to join. Your first conversation is on us.
         </p>
+        <LegalLinks />
       </div>
     </div>
   );

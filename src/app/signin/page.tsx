@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import Logo from "@/components/ui/Logo";
+import LegalLinks from "@/components/ui/LegalLinks";
 import BannerCarousel from "@/components/auth/BannerCarousel";
 import { useAppState } from "@/lib/store";
 import { isDemoMode } from "@/lib/supabase/client";
@@ -66,6 +67,7 @@ export default function SignInPage() {
             ? "New here? We'll text you a code once to verify your number. After that, just a 4-digit PIN."
             : "Just your phone number and a 4-digit PIN — no SMS code needed."}
         </p>
+        <LegalLinks />
       </div>
     </div>
   );
