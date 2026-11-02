@@ -20,7 +20,7 @@ export default function PricingPage() {
         ))}
       </ul>
       <p>
-        New users get a one-time 50% bonus on their first coin purchase. All prices are in Indian
+        New users get a one-time 20% bonus on their first coin purchase. All prices are in Indian
         Rupees (INR) and include applicable taxes.
       </p>
       <h2>Conversation rates</h2>

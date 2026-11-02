@@ -9,4 +9,4 @@ export const PACKS: Record<string, { priceInr: number; coins: number }> = {
 };
 
 // One-time bonus on a seeker's first purchase, as a % of the pack's coins.
-export const FIRST_RECHARGE_BONUS_PCT = 50;
+export const FIRST_RECHARGE_BONUS_PCT = 20;

@@ -232,7 +232,7 @@ export const COIN_PACKS: CoinPack[] = [
 export const FREE_TRIAL_COINS = 60;
 
 // One-time bonus on a seeker's very first recharge, as a % of the pack's coins.
-export const FIRST_RECHARGE_BONUS_PCT = 50;
+export const FIRST_RECHARGE_BONUS_PCT = 20;
 
 export const firstRechargeBonus = (packCoins: number) =>
   Math.round((packCoins * FIRST_RECHARGE_BONUS_PCT) / 100);
