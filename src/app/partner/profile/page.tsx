@@ -339,46 +339,11 @@ export default function MentorProfileEditorPage() {
 
           <div className="mt-6">
             <p className="text-[15px] font-semibold text-dusk-900">Your rates</p>
-
-            <div className="mt-3">
-              <FieldLabel>Chat rate — {draft.rateChat} coins/min</FieldLabel>
-              <input
-                type="range"
-                min={5}
-                max={15}
-                value={draft.rateChat}
-                onChange={(e) => setDraft((d) => ({ ...d, rateChat: Number(e.target.value) }))}
-                className="w-full"
-              />
-            </div>
-
-            <div className="mt-3">
-              <FieldLabel>Audio rate — {draft.rateAudio} coins/min</FieldLabel>
-              <input
-                type="range"
-                min={10}
-                max={30}
-                value={draft.rateAudio}
-                onChange={(e) => setDraft((d) => ({ ...d, rateAudio: Number(e.target.value) }))}
-                className="w-full"
-              />
-            </div>
-
-            <div className="mt-3">
-              <FieldLabel>Video rate — {draft.rateVideo} coins/min</FieldLabel>
-              <input
-                type="range"
-                min={20}
-                max={60}
-                value={draft.rateVideo}
-                onChange={(e) => setDraft((d) => ({ ...d, rateVideo: Number(e.target.value) }))}
-                className="w-full"
-              />
-            </div>
-
+            <p className="mt-1 text-[13px] text-dusk-500">
+              Chat {draft.rateChat} · Audio {draft.rateAudio} · Video {draft.rateVideo} coins/min
+            </p>
             <p className="mt-1 text-[12px] text-dusk-400">
-              Standard mentors are banded 5–15 / 10–30 / 20–60 coins/min for chat, audio and video, so
-              pricing stays consistent for Seekers.
+              Rates are set by the Sukoon team. Contact support if you&apos;d like them reviewed.
             </p>
           </div>
         </div>

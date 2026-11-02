@@ -12,7 +12,8 @@ import {
 } from "@phosphor-icons/react";
 import TrackView from "@/components/session/TrackView";
 import DraggableSelfView from "@/components/session/DraggableSelfView";
-import GiftAck from "@/components/session/GiftAck";
+import GiftReceivedModal from "@/components/session/GiftReceivedModal";
+import CallChat from "@/components/session/CallChat";
 import { useAppState } from "@/lib/store";
 import { getGift } from "@/lib/gifts";
 import { useAgoraCall } from "@/lib/useAgoraCall";
@@ -26,12 +27,10 @@ export default function PartnerCallPage() {
   const mentorId = getMentorId();
   const { recordGiftReceived } = useAppState();
   const seenGifts = useRef<Set<string> | null>(null);
-  const [receivedGift, setReceivedGift] = useState<{
-    key: number;
-    name: string;
-    image: string;
-    coins: number;
-  } | null>(null);
+  const [giftQueue, setGiftQueue] = useState<
+    { key: string; name: string; image: string; coins: number }[]
+  >([]);
+  const [swapped, setSwapped] = useState(false);
   const agora = useAgoraCall({ userId: mentorId, sessionId: id, enabled: Boolean(mentorId) });
 
   const [info, setInfo] = useState<CallPollSession | null>(null);
@@ -71,13 +70,15 @@ export default function PartnerCallPage() {
               createdAt: g.createdAt,
             });
             if (!isBaseline) {
-              setReceivedGift({
-                key: Date.now(),
-                name: g.giftName,
-                image: getGift(g.giftId)?.image ?? "/gifts/surprise-box.png",
-                coins: g.mentorCoins,
-              });
-              setTimeout(() => setReceivedGift(null), 3200);
+              setGiftQueue((q) => [
+                ...q,
+                {
+                  key: g.id,
+                  name: g.giftName,
+                  image: getGift(g.giftId)?.image ?? "/gifts/surprise-box.png",
+                  coins: g.mentorCoins,
+                },
+              ]);
             }
           }
         })
@@ -117,24 +118,35 @@ export default function PartnerCallPage() {
   const minutes = Math.floor(elapsed / 60);
   const secs = elapsed % 60;
 
+  const seekerView = agora.remoteVideo ? (
+    <TrackView track={agora.remoteVideo} />
+  ) : (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-dusk-900">
+      <UserCircle size={96} weight="thin" className="text-white/40" />
+      <p className="px-2 text-center text-[13px] text-white/70">
+        {agora.status === "error"
+          ? "Couldn't connect the call."
+          : agora.remoteJoined
+            ? "Their camera is off"
+            : "Waiting for them to connect…"}
+      </p>
+    </div>
+  );
+
+  const selfView =
+    agora.cameraOn && agora.localVideo ? (
+      <TrackView track={agora.localVideo} />
+    ) : (
+      <div className="flex h-full w-full items-center justify-center bg-dusk-900">
+        <VideoCameraSlash size={20} className="text-white/60" />
+      </div>
+    );
+
   return (
     <div className="relative flex min-h-screen flex-col bg-black text-white">
       <div className="absolute inset-0">
-        {agora.remoteVideo ? (
-          <TrackView track={agora.remoteVideo} />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-dusk-900">
-            <UserCircle size={96} weight="thin" className="text-white/40" />
-            <p className="text-[13px] text-white/70">
-              {agora.status === "error"
-                ? "Couldn't connect the call."
-                : agora.remoteJoined
-                  ? "Their camera is off"
-                  : "Waiting for them to connect…"}
-            </p>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/70" />
+        {swapped ? selfView : seekerView}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/70" />
       </div>
 
       <div className="relative px-5 pt-6">
@@ -160,22 +172,20 @@ export default function PartnerCallPage() {
         </div>
       )}
 
-      <DraggableSelfView>
-        {agora.cameraOn && agora.localVideo ? (
-          <TrackView track={agora.localVideo} />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <VideoCameraSlash size={20} className="text-white/60" />
-          </div>
-        )}
+      <DraggableSelfView onTap={() => setSwapped((v) => !v)}>
+        {swapped ? seekerView : selfView}
       </DraggableSelfView>
 
-      {receivedGift && (
-        <GiftAck
-          key={receivedGift.key}
-          gift={{ name: receivedGift.name, image: receivedGift.image }}
-          title={`${info?.seekerName ?? "A seeker"} sent you ${receivedGift.name}!`}
-          subtitle={`+${receivedGift.coins} coins added to your earnings`}
+      <CallChat userId={mentorId} sessionId={id} enabled={!callOver} />
+
+      {giftQueue[0] && (
+        <GiftReceivedModal
+          image={giftQueue[0].image}
+          giftName={giftQueue[0].name}
+          from={info?.seekerName ?? "A seeker"}
+          coins={giftQueue[0].coins}
+          remaining={giftQueue.length - 1}
+          onClose={() => setGiftQueue((q) => q.slice(1))}
         />
       )}
 

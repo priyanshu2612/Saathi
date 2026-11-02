@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { Phone, VideoCamera, ChatCircleDots, Coins, Gift as GiftIcon } from "@phosphor-icons/react";
 import MentorBottomNav from "@/components/ui/MentorBottomNav";
-import { MOCK_INBOUND_SESSIONS } from "@/lib/mock-data";
+import { useMentorSessions } from "@/lib/useMentorSessions";
+import { isDemoMode } from "@/lib/supabase/client";
 import { coinsToInr, formatDateTime, formatInr } from "@/lib/format";
 import { useAppState } from "@/lib/store";
 import { SessionMode } from "@/lib/types";
@@ -18,8 +19,13 @@ const MODE_LABEL: Record<SessionMode, string> = { chat: "Chat", audio: "Voice", 
 
 export default function MentorEarningsPage() {
   const { mentorEarnings, mentorGifts } = useAppState();
-  const sessions = MOCK_INBOUND_SESSIONS;
-  const totalCoins = sessions.reduce((sum, s) => sum + s.coinsEarned, 0) + mentorEarnings;
+  const { sessions, gifts: realGifts } = useMentorSessions();
+  const shownGifts = isDemoMode
+    ? mentorGifts.map((g) => ({ id: g.id, description: `${g.giftName} from ${g.from}`, coins: g.coins, createdAt: g.createdAt }))
+    : realGifts;
+  const totalCoins =
+    sessions.reduce((sum, s) => sum + s.coinsEarned, 0) +
+    (isDemoMode ? mentorEarnings : shownGifts.reduce((sum, g) => sum + g.coins, 0));
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -46,7 +52,7 @@ export default function MentorEarningsPage() {
           Earnings history
         </h2>
         <div className="mt-3 flex flex-col gap-3">
-          {mentorGifts.map((g) => (
+          {shownGifts.map((g) => (
             <div
               key={g.id}
               className="flex items-center gap-3.5 rounded-xl3 border border-linen-200 bg-card p-3.5"
@@ -55,7 +61,7 @@ export default function MentorEarningsPage() {
                 <GiftIcon size={20} weight="fill" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-display text-[15px] text-dusk-900">{g.giftName} from {g.from}</p>
+                <p className="truncate font-display text-[15px] text-dusk-900">{g.description}</p>
                 <p className="mt-0.5 text-[11px] text-dusk-400">Gift · {formatDateTime(g.createdAt)}</p>
               </div>
               <div className="shrink-0 text-right">

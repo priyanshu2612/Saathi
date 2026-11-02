@@ -9,7 +9,16 @@ const MARGIN = 12;
  * positioned ancestor; on release it snaps to the closest corner, like
  * WhatsApp / FaceTime.
  */
-export default function DraggableSelfView({ children }: { children: React.ReactNode }) {
+export default function DraggableSelfView({
+  children,
+  onTap,
+}: {
+  children: React.ReactNode;
+  /** Fired when the window is tapped without being dragged (used to swap big/small views). */
+  onTap?: () => void;
+}) {
+  const moved = useRef(false);
+  const start = useRef({ x: 0, y: 0 });
   const ref = useRef<HTMLDivElement>(null);
   // null until first drag — until then CSS places it at the top-right.
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
@@ -32,6 +41,8 @@ export default function DraggableSelfView({ children }: { children: React.ReactN
     const el = ref.current;
     if (!el) return;
     e.currentTarget.setPointerCapture(e.pointerId);
+    moved.current = false;
+    start.current = { x: e.clientX, y: e.clientY };
     drag.current = { dx: e.clientX - el.offsetLeft, dy: e.clientY - el.offsetTop };
     setPos({ x: el.offsetLeft, y: el.offsetTop });
     setDragging(true);
@@ -40,6 +51,7 @@ export default function DraggableSelfView({ children }: { children: React.ReactN
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const b = bounds();
     if (!drag.current || !b) return;
+    if (Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > 6) moved.current = true;
     setPos({
       x: clamp(e.clientX - drag.current.dx, MARGIN, b.maxX),
       y: clamp(e.clientY - drag.current.dy, MARGIN, b.maxY),
@@ -47,6 +59,7 @@ export default function DraggableSelfView({ children }: { children: React.ReactN
   };
 
   const onPointerUp = () => {
+    if (drag.current && !moved.current) onTap?.();
     const b = bounds();
     drag.current = null;
     setDragging(false);

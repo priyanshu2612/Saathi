@@ -39,7 +39,7 @@ function DetailTile({
 
 export function PersonalDetails({ mentor }: { mentor: Mentor }) {
   const tiles: { icon: typeof Calendar; iconBg: string; iconFg: string; label: string; value?: string }[] = [
-    { icon: Calendar, iconBg: "bg-sky-50", iconFg: "text-sky-600", label: "Age", value: String(mentor.age) },
+    { icon: Calendar, iconBg: "bg-sky-50", iconFg: "text-sky-600", label: "Age", value: mentor.age > 0 ? String(mentor.age) : undefined },
     { icon: UsersThree, iconBg: "bg-violet-50", iconFg: "text-violet-600", label: "Gender", value: mentor.gender },
     { icon: Globe, iconBg: "bg-sage-400/10", iconFg: "text-sage-500", label: "Nationality", value: mentor.nationality },
     { icon: BookOpen, iconBg: "bg-amber-50", iconFg: "text-amber-600", label: "Languages", value: mentor.languages.join(", ") },

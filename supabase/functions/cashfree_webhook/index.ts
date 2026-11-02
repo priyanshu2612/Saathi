@@ -1,6 +1,7 @@
-// Coins are credited ONLY from here — a verified Razorpay webhook — never
-// from the client confirming "payment succeeded." Set the webhook secret in
-// Razorpay's dashboard and as a Supabase function secret (RAZORPAY_WEBHOOK_SECRET).
+// Coins are credited ONLY from here — a verified Cashfree webhook — never
+// from the client confirming "payment succeeded." Point Cashfree's webhook
+// (Payment Gateway -> Developers -> Webhooks) at this function. Verification
+// uses CASHFREE_SECRET_KEY, the same secret used to create orders.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { createHmac } from "node:crypto";
@@ -8,34 +9,37 @@ import { FIRST_RECHARGE_BONUS_PCT, PACKS } from "../_shared/packs.ts";
 
 Deno.serve(async (req) => {
   const rawBody = await req.text();
-  const signature = req.headers.get("x-razorpay-signature");
-  const secret = Deno.env.get("RAZORPAY_WEBHOOK_SECRET")!;
+  const signature = req.headers.get("x-webhook-signature");
+  const timestamp = req.headers.get("x-webhook-timestamp");
+  const secret = Deno.env.get("CASHFREE_SECRET_KEY")!;
 
-  const expectedSignature = createHmac("sha256", secret).update(rawBody).digest("hex");
-  if (!signature || signature !== expectedSignature) {
+  const expectedSignature = createHmac("sha256", secret)
+    .update((timestamp ?? "") + rawBody)
+    .digest("base64");
+  if (!signature || !timestamp || signature !== expectedSignature) {
     return Response.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   const payload = JSON.parse(rawBody);
-  if (payload.event !== "payment.captured") {
+  if (payload.type !== "PAYMENT_SUCCESS_WEBHOOK") {
     return Response.json({ ignored: true });
   }
 
-  const payment = payload.payload.payment.entity;
-  // This Razorpay account may also serve other apps; their payments reach
-  // this webhook too. Acknowledge (so Razorpay doesn't retry) and ignore.
-  if (payment.notes?.app !== "sukoon") {
+  const { order, payment } = payload.data;
+  // This Cashfree account may also serve other apps; their payments reach
+  // this webhook too. Acknowledge (so Cashfree doesn't retry) and ignore.
+  if (order.order_tags?.app !== "sukoon") {
     return Response.json({ ignored: true });
   }
-  // Notes were set server-side by create_order; the pack table, not the
-  // notes, decides how many coins this payment is worth.
-  const userId = payment.notes?.user_id;
-  const pack = PACKS[payment.notes?.pack_id as string];
+  // Tags were set server-side by create_order; the pack table, not the
+  // tags, decides how many coins this payment is worth.
+  const userId = order.order_tags?.user_id;
+  const pack = PACKS[order.order_tags?.pack_id as string];
 
   if (!userId || !pack) {
-    return Response.json({ error: "Missing user_id/pack_id in payment notes" }, { status: 400 });
+    return Response.json({ error: "Missing user_id/pack_id in order tags" }, { status: 400 });
   }
-  if (payment.amount !== pack.priceInr * 100) {
+  if (Number(payment.payment_amount) !== pack.priceInr) {
     return Response.json({ error: "Amount doesn't match the pack" }, { status: 400 });
   }
 
@@ -57,7 +61,7 @@ Deno.serve(async (req) => {
     user_id: userId,
     amount: pack.coins,
     type: "purchase",
-    razorpay_payment_id: payment.id,
+    cashfree_payment_id: String(payment.cf_payment_id),
   });
   if (insertError) return Response.json({ ok: true, duplicate: true });
 
@@ -77,17 +81,3 @@ Deno.serve(async (req) => {
 
   return Response.json({ ok: true });
 });
-
-/*
-Companion SQL function:
-
-create or replace function increment_wallet_balance(p_user_id uuid, p_amount int)
-returns void as $$
-begin
-  insert into wallets (user_id, coin_balance)
-  values (p_user_id, p_amount)
-  on conflict (user_id) do update
-    set coin_balance = wallets.coin_balance + p_amount, updated_at = now();
-end;
-$$ language plpgsql security definer;
-*/

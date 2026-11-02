@@ -5,13 +5,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { handleCors, json } from "../_shared/cors.ts";
 
+// Rates (rate_chat/audio/video) are admin-only: set them in the database.
 const EDITABLE_FIELDS = [
   "bio",
   "tags",
   "languages",
-  "rate_chat",
-  "rate_audio",
-  "rate_video",
   "photo_url",
   "photos",
   "videos",

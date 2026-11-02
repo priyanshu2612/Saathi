@@ -287,9 +287,8 @@ export async function sessionTick(
 
 export interface PaymentOrder {
   orderId: string;
-  amount: number;
-  currency: string;
-  keyId: string;
+  paymentSessionId: string;
+  mode: "sandbox" | "production";
 }
 
 export async function createPaymentOrder(userId: string, packId: string): Promise<PaymentOrder> {
@@ -335,6 +334,7 @@ export async function getAccount(
       total_coins_charged: number;
       status: string;
       rate_per_minute: number;
+      seeker_name?: string;
     }[];
   }>("get_account", { userId });
 
@@ -357,8 +357,44 @@ export async function getAccount(
       status: s.status === "completed" ? "completed" : "active",
       totalCoinsCharged: s.total_coins_charged,
       ratePerMinute: s.rate_per_minute,
+      seekerName: s.seeker_name,
     })),
   };
+}
+
+export interface CallChatMessage {
+  id: string;
+  mine: boolean;
+  body: string;
+  createdAt: string;
+}
+
+export async function listCallChat(
+  userId: string,
+  sessionId: string,
+  after?: string
+): Promise<CallChatMessage[]> {
+  const { messages } = await invoke<{ messages: CallChatMessage[] }>("session_chat", {
+    action: "list",
+    userId,
+    sessionId,
+    after,
+  });
+  return messages;
+}
+
+export async function sendCallChat(
+  userId: string,
+  sessionId: string,
+  body: string
+): Promise<CallChatMessage> {
+  const { message } = await invoke<{ message: CallChatMessage }>("session_chat", {
+    action: "send",
+    userId,
+    sessionId,
+    body,
+  });
+  return message;
 }
 
 const PROFILE_FIELD_MAP: Record<keyof MentorProfileDraft, string> = {
@@ -367,9 +403,9 @@ const PROFILE_FIELD_MAP: Record<keyof MentorProfileDraft, string> = {
   bio: "bio",
   tags: "tags",
   languages: "languages",
-  rateChat: "rate_chat",
-  rateAudio: "rate_audio",
-  rateVideo: "rate_video",
+  rateChat: "", // rates are admin-only
+  rateAudio: "",
+  rateVideo: "",
   photoUrl: "photo_url",
   photos: "photos",
   age: "age",

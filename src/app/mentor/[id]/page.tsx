@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Star,
@@ -27,7 +27,10 @@ export default function MentorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { mentors, isSaved, toggleSaveMentor, coinBalance } = useAppState();
+  const { mentors, isSaved, toggleSaveMentor, coinBalance, refreshMentors } = useAppState();
+  useEffect(() => {
+    refreshMentors();
+  }, [refreshMentors]);
   const mentor = mentors.find((m) => m.id === id);
   const requestedMode = searchParams.get("mode") as SessionMode | null;
   const [mode, setMode] = useState<SessionMode>(

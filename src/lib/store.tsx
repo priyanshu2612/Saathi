@@ -10,7 +10,7 @@ import {
 } from "react";
 import { MOCK_MENTORS, FREE_TRIAL_COINS, firstRechargeBonus } from "./mock-data";
 import { Gift, saathiGiftCoins } from "./gifts";
-import { openRazorpayCheckout } from "./razorpay";
+import { openCashfreeCheckout } from "./cashfree";
 import {
   ChatMessage,
   CoinPack,
@@ -187,7 +187,7 @@ interface AppState extends PersistedState {
     gift: Gift
   ) => Promise<{ ok: boolean; error?: string }>;
   recordGiftReceived: (gift: ReceivedGift) => void;
-  /** Buys a coin pack. Real mode goes through Razorpay; demo mode just credits the coins. */
+  /** Buys a coin pack. Real mode goes through Cashfree; demo mode just credits the coins. */
   purchasePack: (pack: CoinPack) => Promise<{ ok: boolean; error?: string }>;
   spendCoins: (amount: number, sessionId?: string) => Promise<boolean>;
   toggleTag: (tag: MoodTag) => void;
@@ -209,6 +209,7 @@ interface AppState extends PersistedState {
   updateMentorProfile: (draft: Partial<MentorProfileDraft>) => void;
   simulateEarning: (coins: number) => void;
   mentorsLoading: boolean;
+  refreshMentors: () => void;
 }
 
 const AppStateContext = createContext<AppState | null>(null);
@@ -237,6 +238,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [mentors, setMentors] = useState<Mentor[]>(isDemoMode ? MOCK_MENTORS : []);
   const [mentorsLoading, setMentorsLoading] = useState(!isDemoMode);
+  const refreshMentors = useCallback(() => {
+    if (isDemoMode) return;
+    fetchMentors().then(setMentors).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const loaded = loadState();
@@ -453,11 +458,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         if (!seekerId) return { ok: false, error: "Sign in again to add coins." };
         const before = state.coinBalance;
         const order = await createPaymentOrder(seekerId, pack.id);
-        await openRazorpayCheckout({
-          ...order,
-          description: `${pack.coins} coins`,
-          contact: state.phoneNumber || undefined,
-        });
+        await openCashfreeCheckout(order);
         // The webhook credits the coins a moment after the payment clears.
         for (let attempt = 0; attempt < 10; attempt++) {
           const account = await getAccount(seekerId);
@@ -740,6 +741,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     hydrated,
     mentors,
     mentorsLoading,
+    refreshMentors,
     authIntent,
     checkPhone,
     signUp,

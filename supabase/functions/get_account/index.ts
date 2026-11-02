@@ -37,9 +37,21 @@ Deno.serve(async (req) => {
       .limit(50),
   ]);
 
+  // A Saathi's history needs to show who they spoke to.
+  const seekerIds = [
+    ...new Set((sessions ?? []).filter((s) => s.mentor_id === userId).map((s) => s.seeker_id)),
+  ];
+  const { data: seekers } = seekerIds.length
+    ? await supabase.from("seeker_accounts").select("user_id, username").in("user_id", seekerIds)
+    : { data: [] };
+  const names = new Map((seekers ?? []).map((s) => [s.user_id, s.username]));
+
   return json({
     coinBalance: wallet?.coin_balance ?? 0,
     transactions: transactions ?? [],
-    sessions: sessions ?? [],
+    sessions: (sessions ?? []).map((s) => ({
+      ...s,
+      seeker_name: s.mentor_id === userId ? (names.get(s.seeker_id) ?? "A seeker") : undefined,
+    })),
   });
 });

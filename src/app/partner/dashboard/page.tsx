@@ -6,6 +6,7 @@ import { Coins, Gear, ChatCircleDots, Phone, VideoCamera, Timer } from "@phospho
 import { useAppState } from "@/lib/store";
 import { isDemoMode } from "@/lib/supabase/client";
 import { getMentorId, IncomingCall, pollIncomingCalls, respondToCall } from "@/lib/data/backend";
+import { primeRingtone, useRingtone } from "@/lib/useRingtone";
 import MentorBottomNav from "@/components/ui/MentorBottomNav";
 import { coinsToInr, formatInr, seekerAvatarUrl } from "@/lib/format";
 
@@ -78,6 +79,7 @@ export default function MentorDashboardPage() {
   };
 
   const incoming = calls[0];
+  useRingtone(!isDemoMode && Boolean(incoming), incoming ? `${incoming.seekerName} is calling` : "Incoming call");
 
   const earnPerMin = (rate: number) => Math.round(rate * SAATHI_SHARE);
   const RATE_ROWS = [
@@ -112,7 +114,10 @@ export default function MentorDashboardPage() {
       </div>
 
       <button
-        onClick={() => setMentorOnline(!mentorOnline)}
+        onClick={() => {
+          primeRingtone();
+          setMentorOnline(!mentorOnline);
+        }}
         className={`tap-target mx-5 mt-6 flex items-center justify-between rounded-xl3 border p-5 transition ${
           mentorOnline
             ? "border-sage-400 bg-sage-400/10"

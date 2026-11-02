@@ -29,7 +29,7 @@ function average(values: number[]) {
 }
 
 const TRUST_POINTS = [
-  { icon: ShieldCheck, text: "Secure payments, verified by Razorpay" },
+  { icon: ShieldCheck, text: "Secure payments, verified by Cashfree" },
   { icon: Timer, text: "Coins are only deducted once your call connects" },
   { icon: Headset, text: "24×7 real human support — never a bot" },
   { icon: Receipt, text: "Every purchase gets a clear, itemized receipt" },

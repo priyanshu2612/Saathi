@@ -22,6 +22,7 @@ import TrackView from "./TrackView";
 import DraggableSelfView from "./DraggableSelfView";
 import GiftSheet from "./GiftSheet";
 import GiftAck from "./GiftAck";
+import CallChat from "./CallChat";
 import TopUpSheet from "./TopUpSheet";
 import { useAppState } from "@/lib/store";
 import { Gift } from "@/lib/gifts";
@@ -37,6 +38,7 @@ export default function CallSession({
   const { coinBalance, sendGift } = useAppState();
   const [giftOpen, setGiftOpen] = useState(false);
   const [topUpOpen, setTopUpOpen] = useState(false);
+  const [swapped, setSwapped] = useState(false);
   const [sentGift, setSentGift] = useState<{ gift: Gift; key: number } | null>(null);
   const isVideo = session.mode === "video";
   const { elapsedSeconds, charged, ended, showLowBalance, endNow } = useSessionBilling(
@@ -137,39 +139,53 @@ export default function CallSession({
   const secs = elapsedSeconds % 60;
   const mentorVideo = mentor.videos[0];
 
+  const remoteView = (
+    <>
+      {real && agora.remoteVideo ? (
+        <TrackView track={agora.remoteVideo} />
+      ) : !real && isVideo && mentorVideo ? (
+        <video
+          src={mentorVideo}
+          className="h-full w-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-dusk-900">
+          <div className="relative h-32 w-32 overflow-hidden rounded-full ring-4 ring-white/10">
+            <Image src={mentor.photoUrl} alt={mentor.name} fill className="object-cover" />
+          </div>
+          {real && (
+            <p className="absolute bottom-40 text-[13px] text-white/70">
+              {agora.status === "error"
+                ? "Couldn't connect the call."
+                : agora.remoteJoined
+                  ? `${mentor.name}'s camera is off`
+                  : `Waiting for ${mentor.name} to join…`}
+            </p>
+          )}
+        </div>
+      )}
+    </>
+  );
+
+  const selfView = cameraOn && real ? (
+    <TrackView track={agora.localVideo} />
+  ) : cameraOn ? (
+    <video ref={localVideoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
+  ) : (
+    <div className="flex h-full w-full items-center justify-center bg-dusk-900">
+      <VideoCameraSlash size={20} className="text-white/60" />
+    </div>
+  );
+
   return (
     <div className="relative flex min-h-screen flex-col bg-black text-white">
-      {/* Remote side: the Saathi's live Agora feed for real video calls;
-          otherwise simulated with their intro clip / avatar. */}
       <div className="absolute inset-0">
-        {real && agora.remoteVideo ? (
-          <TrackView track={agora.remoteVideo} />
-        ) : !real && isVideo && mentorVideo ? (
-          <video
-            src={mentorVideo}
-            className="h-full w-full object-cover"
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-dusk-900">
-            <div className="relative h-32 w-32 overflow-hidden rounded-full ring-4 ring-white/10">
-              <Image src={mentor.photoUrl} alt={mentor.name} fill className="object-cover" />
-            </div>
-            {real && (
-              <p className="absolute bottom-40 text-[13px] text-white/70">
-                {agora.status === "error"
-                  ? "Couldn't connect the call."
-                  : agora.remoteJoined
-                    ? `${mentor.name}'s camera is off`
-                    : `Waiting for ${mentor.name} to join…`}
-              </p>
-            )}
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/70" />
+        {swapped && isVideo ? selfView : remoteView}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/70" />
       </div>
 
       <div className="relative flex items-center justify-between px-5 pt-6">
@@ -216,20 +232,14 @@ export default function CallSession({
         </div>
       )}
 
-      {/* Self view */}
+      {/* Self view — tap to swap with the Saathi's feed */}
       {isVideo && (
-        <DraggableSelfView>
-          {cameraOn && real ? (
-            <TrackView track={agora.localVideo} />
-          ) : cameraOn ? (
-            <video ref={localVideoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <VideoCameraSlash size={20} className="text-white/60" />
-            </div>
-          )}
+        <DraggableSelfView onTap={() => setSwapped((v) => !v)}>
+          {swapped ? remoteView : selfView}
         </DraggableSelfView>
       )}
+
+      <CallChat userId={getSeekerId()} sessionId={session.id} enabled={real && !ended} />
 
       {sentGift && (
         <GiftAck

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Phone, VideoCamera, ChatCircleDots } from "@phosphor-icons/react";
 import MentorBottomNav from "@/components/ui/MentorBottomNav";
 import ConversationIllustration from "@/components/ui/ConversationIllustration";
-import { MOCK_INBOUND_SESSIONS } from "@/lib/mock-data";
+import { useMentorSessions } from "@/lib/useMentorSessions";
 import { formatDateTime } from "@/lib/format";
 import { SessionMode } from "@/lib/types";
 
@@ -30,7 +30,7 @@ const MODE_META: Record<SessionMode, { label: string; icon: typeof Phone; badgeC
 };
 
 export default function MentorHistoryPage() {
-  const sessions = MOCK_INBOUND_SESSIONS;
+  const { sessions } = useMentorSessions();
   const totalCoinsEarned = sessions.reduce((sum, s) => sum + s.coinsEarned, 0);
 
   return (

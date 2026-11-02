@@ -148,6 +148,8 @@ export interface SessionRecord {
   ratePerMinute: number;
   topicCategory?: TopicCategory;
   topic?: string;
+  /** Only set when the viewer is the Saathi on this session. */
+  seekerName?: string;
 }
 
 // A gift a seeker sent this Saathi — powers the Saathi-side acknowledgement
