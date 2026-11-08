@@ -7,6 +7,7 @@ import { useMentorSessions } from "@/lib/useMentorSessions";
 import { isDemoMode } from "@/lib/supabase/client";
 import { coinsToInr, formatDateTime, formatInr } from "@/lib/format";
 import { useAppState } from "@/lib/store";
+import { PAYOUT_DAYS } from "@/lib/business";
 import { SessionMode } from "@/lib/types";
 
 const MODE_ICON: Record<SessionMode, typeof Phone> = {
@@ -44,6 +45,9 @@ export default function MentorEarningsPage() {
         </p>
         <p className="mt-2 text-[11px] text-dusk-400">
           An estimate based on the average coin value. Final payouts may differ slightly.
+        </p>
+        <p className="mt-2 rounded-lg bg-card px-3 py-2 text-[12px] font-medium text-dusk-700">
+          Payouts are settled within {PAYOUT_DAYS} days of earning.
         </p>
       </div>
 

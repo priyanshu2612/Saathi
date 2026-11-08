@@ -33,8 +33,10 @@ Deno.serve(async (req) => {
     return json({ error: "Mentor is not available." }, { status: 400 });
   }
 
-  const ratePerMinute = mentor[RATE_COLUMN[mode as keyof typeof RATE_COLUMN]];
-  if (!ratePerMinute) {
+  // Text chat is free for everyone; only audio and video are billed.
+  const isFreeChat = mode === "chat";
+  const ratePerMinute = isFreeChat ? 0 : mentor[RATE_COLUMN[mode as keyof typeof RATE_COLUMN]];
+  if (!isFreeChat && !ratePerMinute) {
     return json({ error: "Mentor doesn't offer this session type." }, { status: 400 });
   }
 
@@ -44,7 +46,7 @@ Deno.serve(async (req) => {
     .eq("user_id", seekerId)
     .single();
 
-  if (!wallet || wallet.coin_balance < ratePerMinute) {
+  if (!isFreeChat && (!wallet || wallet.coin_balance < ratePerMinute)) {
     return json({ error: "Not enough coins for a minute of this session." }, { status: 402 });
   }
 

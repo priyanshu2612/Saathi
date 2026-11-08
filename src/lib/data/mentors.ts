@@ -47,7 +47,7 @@ function mapMentorRow(row: MentorProfileRow): Mentor {
     tags: (row.tags ?? []) as MoodTag[],
     languages: row.languages ?? [],
     bio: row.bio ?? "",
-    rateChat: row.rate_chat,
+    rateChat: 0, // text chat is free for everyone
     rateAudio: row.rate_audio ?? row.rate_chat,
     rateVideo: row.rate_video ?? row.rate_chat,
     rating: row.rating ?? 0,

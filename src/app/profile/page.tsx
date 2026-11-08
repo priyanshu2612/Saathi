@@ -13,6 +13,7 @@ import {
   CaretRight,
   HandHeart,
 } from "@phosphor-icons/react";
+import SupportRow from "@/components/ui/SupportRow";
 import BottomNav from "@/components/ui/BottomNav";
 import { useAppState } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
@@ -216,6 +217,9 @@ export default function ProfilePage() {
               title="Help Center"
               subtitle="FAQs and guides"
             />
+          </div>
+          <div className="mt-3">
+            <SupportRow />
           </div>
         </div>
 

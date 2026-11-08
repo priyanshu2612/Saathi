@@ -25,8 +25,9 @@ export default function PricingPage() {
       </p>
       <h2>Conversation rates</h2>
       <p>
-        Each Saathi&apos;s rate (coins per minute for chat, audio and video) is shown on their
-        profile before you start. You are only charged for the time you spend in a conversation.
+        Text chat is free for everyone. Each Saathi&apos;s rate (coins per minute for audio and
+        video calls) is shown on their profile before you start. You are only charged for the time
+        you spend on a call.
       </p>
       <h2>Payments</h2>
       <p>Payments are processed securely by Cashfree Payments (UPI, cards, net banking, wallets).</p>

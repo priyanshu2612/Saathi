@@ -437,4 +437,36 @@ export async function setMentorOnlineRemote(userId: string, online: boolean): Pr
   await invoke("update_mentor_profile", { userId, fields: { is_online: online } });
 }
 
+export interface MentorDayStats {
+  date: string;
+  received: number;
+  rejected: number;
+  talkSeconds: number;
+  onlineSeconds: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  mentorId: string;
+  name: string;
+  seconds: number;
+  isMe: boolean;
+}
+
+export async function mentorHeartbeat(mentorId: string): Promise<number> {
+  const res = await invoke<{ onlineSeconds: number }>("mentor_stats", { action: "heartbeat", mentorId });
+  return res.onlineSeconds;
+}
+
+export function getMentorDayStats(mentorId: string, date: string): Promise<MentorDayStats> {
+  return invoke<MentorDayStats>("mentor_stats", { action: "dashboard", mentorId, date });
+}
+
+export function getMentorLeaderboard(mentorId: string) {
+  return invoke<{ entries: LeaderboardEntry[]; me: LeaderboardEntry | null }>("mentor_stats", {
+    action: "leaderboard",
+    mentorId,
+  });
+}
+
 export type { MoodTag };

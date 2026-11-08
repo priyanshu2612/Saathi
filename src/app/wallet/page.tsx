@@ -72,11 +72,9 @@ export default function WalletPage() {
     setTimeout(() => setRefreshing(false), 600);
   };
 
-  const { chatMinutes, audioMinutes } = useMemo(() => {
-    const avgChatRate = average(mentors.map((m) => m.rateChat));
+  const { audioMinutes } = useMemo(() => {
     const avgAudioRate = average(mentors.map((m) => m.rateAudio));
     return {
-      chatMinutes: avgChatRate > 0 ? Math.floor(coinBalance / avgChatRate) : 0,
       audioMinutes: avgAudioRate > 0 ? Math.floor(coinBalance / avgAudioRate) : 0,
     };
   }, [mentors, coinBalance]);
@@ -120,7 +118,7 @@ export default function WalletPage() {
           </div>
 
           <p className="relative mt-1.5 text-[13px] text-white/80">
-            ≈ {chatMinutes} min chat · {audioMinutes} min voice call
+            Chat is free · ≈ {audioMinutes} min voice call
           </p>
 
           {lifetimePurchased > 0 && (

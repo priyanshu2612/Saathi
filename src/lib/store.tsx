@@ -40,6 +40,7 @@ import {
   sessionTick,
   setSeekerId,
   setMentorOnlineRemote,
+  mentorHeartbeat,
   setSessionTopic as setSessionTopicRemote,
   startSessionRemote,
   submitSaathiApplication as submitSaathiApplicationRemote,
@@ -255,6 +256,18 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state, hydrated]);
+
+  // While a Saathi is online, tell the server every 30s so today's online
+  // time (daily target, leaderboard) keeps counting on every screen.
+  useEffect(() => {
+    if (isDemoMode || !hydrated || !state.mentorOnline) return;
+    const mentorId = getMentorId();
+    if (!mentorId) return;
+    const beat = () => mentorHeartbeat(mentorId).catch(() => {});
+    beat();
+    const timer = setInterval(beat, 30_000);
+    return () => clearInterval(timer);
+  }, [hydrated, state.mentorOnline]);
 
   useEffect(() => {
     if (isDemoMode) return;
@@ -632,7 +645,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const mentor = MOCK_MENTORS.find((m) => m.id === mentorId);
       if (!mentor) return null;
       const ratePerMinute =
-        mode === "video" ? mentor.rateVideo : mode === "audio" ? mentor.rateAudio : mentor.rateChat;
+        mode === "video" ? mentor.rateVideo : mode === "audio" ? mentor.rateAudio : 0;
       if (state.coinBalance < ratePerMinute) return null;
       const session: SessionRecord = {
         id: `s-${Date.now()}`,

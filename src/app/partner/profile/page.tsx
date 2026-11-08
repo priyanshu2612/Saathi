@@ -9,6 +9,7 @@ import MentorBottomNav from "@/components/ui/MentorBottomNav";
 import ScreenHeader from "@/components/ui/ScreenHeader";
 import MediaGallery from "@/components/mentor/MediaGallery";
 import { PersonalDetails, AboutSection } from "@/components/mentor/MentorDetails";
+import SupportRow from "@/components/ui/SupportRow";
 import { useAppState } from "@/lib/store";
 import {
   COMMUNICATION_TAG_OPTIONS,
@@ -340,11 +341,15 @@ export default function MentorProfileEditorPage() {
           <div className="mt-6">
             <p className="text-[15px] font-semibold text-dusk-900">Your rates</p>
             <p className="mt-1 text-[13px] text-dusk-500">
-              Chat {draft.rateChat} · Audio {draft.rateAudio} · Video {draft.rateVideo} coins/min
+              Chat free · Audio {draft.rateAudio} · Video {draft.rateVideo} coins/min
             </p>
             <p className="mt-1 text-[12px] text-dusk-400">
               Rates are set by the Sukoon team. Contact support if you&apos;d like them reviewed.
             </p>
+          </div>
+
+          <div className="mt-6">
+            <SupportRow />
           </div>
         </div>
       </div>
