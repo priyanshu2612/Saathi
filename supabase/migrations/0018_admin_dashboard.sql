@@ -246,7 +246,7 @@ begin
       jsonb_build_object('label', '30+ min', 'count', (select count(*) from rng where connected and secs >= 1800))
     ),
 
-    'hours', (select coalesce(jsonb_agg(to_jsonb(h)), '[]'::jsonb) from hours h),
+    'hours', (select coalesce(jsonb_agg(to_jsonb(hr) order by hr.h), '[]'::jsonb) from hours hr),
 
     'money', jsonb_build_object(
       'revenue_today', (select coalesce(sum(inr), 0) from pur where created_at >= v_today_ts),
@@ -262,7 +262,7 @@ begin
       'avg_order', (select round(avg(inr)) from pur where created_at >= v_from_ts),
       'arppu', (select round(avg(inr)) from per_payer),
       'conversion_pct', (select round(100.0 * (select count(*) from per_payer) / nullif((select count(*) from seekers), 0), 1)),
-      'by_pack', (select coalesce(jsonb_agg(to_jsonb(t) order by t.inr), '[]'::jsonb) from (
+      'by_pack', (select coalesce(jsonb_agg(to_jsonb(t) order by t.price), '[]'::jsonb) from (
         select inr as price, count(*) as count, sum(inr) as revenue
         from pur where created_at >= v_from_ts group by inr) t),
       'coins_spent_calls', (select coalesce(-sum(amount), 0) from coin_transactions
@@ -327,7 +327,7 @@ begin
       'apply_funnel', (select coalesce(jsonb_agg(to_jsonb(f) order by f.step), '[]'::jsonb) from saathi_funnel f)
     ),
 
-    'daily', (select coalesce(jsonb_agg(to_jsonb(d) order by d.d), '[]'::jsonb) from daily d),
+    'daily', (select coalesce(jsonb_agg(to_jsonb(dl) order by dl.d), '[]'::jsonb) from daily dl),
     'cohorts', (select coalesce(jsonb_agg(to_jsonb(c) order by c.week), '[]'::jsonb) from cohorts c),
 
     'top_spenders', (select coalesce(jsonb_agg(to_jsonb(t) order by t.inr desc), '[]'::jsonb) from (

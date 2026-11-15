@@ -53,3 +53,15 @@ export function delta(now: number, before: number): { text: string; up: boolean 
   const p = Math.round(((now - before) / before) * 100);
   return { text: `${p >= 0 ? "+" : ""}${p}% vs yesterday`, up: p === 0 ? null : p > 0 };
 }
+
+export function dateTime(iso: string | null | undefined): string {
+  if (!iso) return "–";
+  return new Date(iso).toLocaleString("en-IN", {
+    day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit",
+  });
+}
+
+export function dateOnly(iso: string | null | undefined): string {
+  if (!iso) return "–";
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}

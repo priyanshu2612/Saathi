@@ -5,8 +5,9 @@ import { ArrowsClockwise, Lock, SignOut } from "@phosphor-icons/react";
 import { AdminStats } from "@/components/admin/types";
 import { Calls, Money, Overview, SaathiPanel, Users } from "@/components/admin/panels";
 import { ago } from "@/components/admin/format";
+import People from "@/components/admin/people";
 
-const TABS = ["Overview", "Users", "Saathi", "Money", "Calls"] as const;
+const TABS = ["Overview", "Users", "Saathi", "Money", "Calls", "People"] as const;
 type Tab = (typeof TABS)[number];
 const RANGES = [
   { label: "7d", days: 7 },
@@ -142,7 +143,7 @@ export default function AdminPage() {
       </header>
 
       <main className="pt-5">
-        {error && (
+        {error && tab !== "People" && (
           <div className="mb-4 rounded-xl2 border border-warmth-300 bg-warmth-50 p-3 text-[13px] text-warmth-700">
             {error}
             {error.includes("admin_dashboard") && (
@@ -152,8 +153,9 @@ export default function AdminPage() {
             )}
           </div>
         )}
-        {!stats && !error && <p className="text-sm text-dusk-400">Crunching numbers…</p>}
-        {stats && (
+        {tab === "People" && <People />}
+        {tab !== "People" && !stats && !error && <p className="text-sm text-dusk-400">Crunching numbers…</p>}
+        {tab !== "People" && stats && (
           <>
             {tab === "Overview" && <Overview s={stats} />}
             {tab === "Users" && <Users s={stats} />}

@@ -85,3 +85,38 @@ export interface AdminStats {
   recent_sessions: { seeker: string | null; saathi: string | null; mode: string; status: string; seconds: number; coins: number; at: string }[];
   reports: { open: number; reviewing: number; range: number; latest: { reason: string; status: string; at: string }[] };
 }
+
+export interface UserPerson {
+  id: string; code: string; username: string | null; display_name: string | null;
+  phone: string | null; age: number | null; joined: string; last_active: string | null;
+  requests: number; sessions: number; talk_seconds: number; purchases: number; spent_inr: number;
+  gifts_sent: number; gift_coins: number; balance: number; locked: boolean;
+}
+
+export interface SaathiPerson {
+  id: string; code: string; login_code: string | null; name: string; phone: string | null;
+  whatsapp: string | null; status: string; is_online: boolean; rating: number | null;
+  session_count: number; joined: string; last_active: string | null;
+  online_seconds: number; online_days: number; sessions: number; talk_seconds: number;
+  earned_coins: number; wallet: number; bio: string | null; tagline: string | null;
+  tags: string[] | null; languages: string[] | null;
+  rate_chat: number | null; rate_audio: number | null; rate_video: number | null;
+  age: number | null; gender: string | null; nationality: string | null; born_city: string | null;
+  qualification: string | null; college: string | null; school: string | null; religion: string | null;
+  communication_tags: string[] | null; personality_tags: string[] | null;
+  application_id: string | null; photos: string[]; application_photos: string[];
+}
+
+export interface ApplicantPerson {
+  id: string; code: string; name: string; age: number | null; city: string | null;
+  phone: string | null; whatsapp: string | null; languages: string[] | null; languages_other: string | null;
+  profession: string | null; topics: string[] | null; modes: string[] | null;
+  hours_per_week: string | null; availability_times: string[] | null; quiet_space: string | null;
+  heard_about: string | null; status: string; joined: string;
+  saathi_id: string | null; login_code: string | null; invite_status: string | null;
+  photos: string[];
+}
+
+export interface PeopleData {
+  users: UserPerson[]; saathi: SaathiPerson[]; applicants: ApplicantPerson[]; generated_at: string;
+}
