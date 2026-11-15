@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAppState } from "@/lib/store";
 
-const PUBLIC_PREFIXES = ["/signin", "/partner", "/welcome", "/saathi", "/terms", "/privacy", "/refund", "/contact", "/pricing"];
+const PUBLIC_PREFIXES = ["/signin", "/partner", "/welcome", "/saathi", "/terms", "/privacy", "/refund", "/contact", "/pricing", "/admin"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));

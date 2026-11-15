@@ -100,3 +100,15 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Admin dashboard: break out of the 430px mobile frame and use the full window. */
+.app-frame-outer:has(.admin-root) {
+  padding: 0;
+}
+.app-frame:has(.admin-root) {
+  max-width: none;
+  min-height: 100vh;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
