@@ -101,7 +101,7 @@ export default function People() {
             i.name.toLowerCase().includes(q) ||
             i.code.toLowerCase().includes(q) ||
             (i.phone ?? "").includes(q.replace(/\s|-/g, "")) ||
-            (i.raw as SaathiPerson).login_code?.toLowerCase() === q
+            (i.raw as SaathiPerson).login_code?.toLowerCase().includes(q)
         )
       : items;
     const t = (s: string | null) => (s ? new Date(s).getTime() : 0);
@@ -212,6 +212,7 @@ export default function People() {
 
 function Row({ item, onOpen }: { item: Item; onOpen: () => void }) {
   const isApplicant = item.kind === "applicants";
+  const loginCode = item.kind === "users" ? null : (item.raw as SaathiPerson).login_code;
   return (
     <button onClick={onOpen} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-linen-100 sm:px-4">
       <Avatar src={item.photos[0]} name={item.name} size={52} />
@@ -219,6 +220,11 @@ function Row({ item, onOpen }: { item: Item; onOpen: () => void }) {
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="truncate text-[15px] font-semibold text-dusk-900">{item.name}</span>
           <code className="rounded bg-linen-100 px-1.5 py-0.5 text-[11px] text-dusk-700">{item.code}</code>
+          {loginCode && (
+            <code className="rounded bg-warmth-50 px-1.5 py-0.5 text-[11px] font-semibold text-warmth-600">
+              Login {loginCode}
+            </code>
+          )}
           {item.badge && <Pill tone={item.badge.tone}>{item.badge.text}</Pill>}
         </div>
         <p className="mt-0.5 text-[13px] text-dusk-700">{item.phone ?? "No phone"}</p>

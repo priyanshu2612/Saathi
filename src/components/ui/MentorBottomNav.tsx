@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SquaresFour, UserCircle, ClockCounterClockwise, CurrencyInr } from "@phosphor-icons/react";
-import ThemeToggle from "./ThemeToggle";
+import { SquaresFour, UserCircle, ClockCounterClockwise, CurrencyInr, Trophy } from "@phosphor-icons/react";
 
 const ITEMS = [
   { href: "/partner/dashboard", label: "Dashboard", icon: SquaresFour },
+  { href: "/partner/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/partner/history", label: "Seekers", icon: ClockCounterClockwise },
   { href: "/partner/earnings", label: "Earnings", icon: CurrencyInr },
   { href: "/partner/profile", label: "Profile", icon: UserCircle },
@@ -15,7 +15,7 @@ const ITEMS = [
 export default function MentorBottomNav() {
   const pathname = usePathname();
   return (
-    <nav className="sticky bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-6 border-t border-linen-200 bg-linen-50/95 px-6 pb-[max(10px,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
+    <nav className="sticky bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-3 border-t border-linen-200 bg-linen-50/95 px-6 pb-[max(10px,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
       {ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname?.startsWith(href);
         return (
@@ -25,7 +25,6 @@ export default function MentorBottomNav() {
           </Link>
         );
       })}
-      <ThemeToggle />
     </nav>
   );
 }

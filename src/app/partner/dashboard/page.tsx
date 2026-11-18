@@ -11,7 +11,6 @@ import {
   DailyTargetCard,
   DayDashboardCard,
   HowToJobBanner,
-  LeaderboardCard,
 } from "@/components/saathi/SaathiStats";
 import MentorBottomNav from "@/components/ui/MentorBottomNav";
 import { coinsToInr, formatInr, seekerAvatarUrl } from "@/lib/format";
@@ -155,7 +154,6 @@ export default function MentorDashboardPage() {
 
       <DailyTargetCard online={mentorOnline} />
       <DayDashboardCard />
-      <LeaderboardCard />
 
       <div className="mx-5 mt-5 rounded-xl2 bg-linen-100 p-4">
         <div className="flex items-center gap-2 text-dusk-700">
