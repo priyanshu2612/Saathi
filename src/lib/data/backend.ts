@@ -469,4 +469,24 @@ export function getMentorLeaderboard(mentorId: string) {
   });
 }
 
+export interface SaathiOwnProfile {
+  name: string;
+  phone: string | null;
+  loginCode: string | null;
+  age: number | null;
+  profession: string | null;
+  topics: string[];
+  languages: string[];
+  modes: string[];
+  photos: string[];
+  rateAudio: number | null;
+  rateVideo: number | null;
+}
+
+/** The signed-in Saathi's profile as they filled it in on their application. */
+export async function getSaathiProfile(mentorId: string): Promise<SaathiOwnProfile> {
+  const { profile } = await invoke<{ profile: SaathiOwnProfile }>("saathi_profile", { mentorId });
+  return profile;
+}
+
 export type { MoodTag };
