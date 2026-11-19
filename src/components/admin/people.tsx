@@ -8,6 +8,7 @@ import { Pill } from "./ui";
 
 type Kind = "users" | "saathi" | "applicants";
 type Sort = "newest" | "recent" | "active";
+type Mode = "all" | "audio" | "video";
 
 interface Item {
   kind: Kind;
@@ -16,6 +17,7 @@ interface Item {
   name: string;
   phone: string | null;
   photos: string[];
+  modes: Set<Mode | "chat">;
   joined: string;
   lastActive: string | null;
   activeSeconds: number | null;
@@ -27,12 +29,14 @@ const toItems = (d: PeopleData, kind: Kind): Item[] => {
   if (kind === "users")
     return d.users.map((u) => ({
       kind, id: u.id, code: u.code, name: u.username || u.display_name || "Unnamed", phone: u.phone,
+      modes: new Set(),
       photos: [], joined: u.joined, lastActive: u.last_active, activeSeconds: u.talk_seconds,
       badge: u.locked ? { text: "Locked", tone: "bad" } : undefined, raw: u,
     }));
   if (kind === "saathi")
     return d.saathi.map((m) => ({
       kind, id: m.id, code: m.code, name: m.name, phone: m.phone,
+      modes: new Set([...(m.rate_audio ? ["audio"] : []), ...(m.rate_video ? ["video"] : []), ...(m.rate_chat ? ["chat"] : [])] as (Mode | "chat")[]),
       photos: [...m.photos, ...m.application_photos.filter((p) => !m.photos.includes(p))],
       joined: m.joined, lastActive: m.last_active, activeSeconds: m.online_seconds,
       badge: m.is_online
@@ -44,6 +48,7 @@ const toItems = (d: PeopleData, kind: Kind): Item[] => {
     }));
   return d.applicants.map((a) => ({
     kind, id: a.id, code: a.code, name: a.name, phone: a.phone, photos: a.photos,
+    modes: new Set((a.modes ?? []).map((x) => (/video/i.test(x) ? "video" : /audio|voice/i.test(x) ? "audio" : "chat")) as (Mode | "chat")[]),
     joined: a.joined, lastActive: null, activeSeconds: null,
     badge: a.saathi_id
       ? { text: "Onboarded", tone: "good" }
@@ -66,6 +71,7 @@ export default function People() {
   const [kind, setKind] = useState<Kind>("users");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("newest");
+  const [mode, setMode] = useState<Mode>("all");
   const [shown, setShown] = useState(PAGE);
   const [selected, setSelected] = useState<Item | null>(null);
   const [lightbox, setLightbox] = useState<{ photos: string[]; index: number } | null>(null);
@@ -95,15 +101,16 @@ export default function People() {
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const byMode = mode === "all" || kind === "users" ? items : items.filter((i) => i.modes.has(mode));
     const filtered = q
-      ? items.filter(
+      ? byMode.filter(
           (i) =>
             i.name.toLowerCase().includes(q) ||
             i.code.toLowerCase().includes(q) ||
             (i.phone ?? "").includes(q.replace(/\s|-/g, "")) ||
             (i.raw as SaathiPerson).login_code?.toLowerCase().includes(q)
         )
-      : items;
+      : byMode;
     const t = (s: string | null) => (s ? new Date(s).getTime() : 0);
     return [...filtered].sort((a, b) =>
       sort === "recent"
@@ -112,9 +119,9 @@ export default function People() {
         ? (b.activeSeconds ?? 0) - (a.activeSeconds ?? 0)
         : t(b.joined) - t(a.joined)
     );
-  }, [items, query, sort]);
+  }, [items, query, sort, mode, kind]);
 
-  useEffect(() => setShown(PAGE), [kind, query, sort]);
+  useEffect(() => setShown(PAGE), [kind, query, sort, mode]);
 
   // Keep the open detail in sync if data refreshes.
   const current = selected ? items.find((i) => i.id === selected.id) ?? selected : null;
@@ -145,6 +152,17 @@ export default function People() {
             className="w-full rounded-full border border-linen-200 bg-card py-2 pl-9 pr-3 text-[14px] text-dusk-900 outline-none focus:border-dusk-700"
           />
         </div>
+        {kind !== "users" && (
+          <select
+            value={mode}
+            onChange={(e) => setMode(e.target.value as Mode)}
+            className="rounded-full border border-linen-200 bg-card px-3 py-2 text-[13px] text-dusk-900"
+          >
+            <option value="all">All call types</option>
+            <option value="audio">Audio call</option>
+            <option value="video">Video call</option>
+          </select>
+        )}
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as Sort)}
