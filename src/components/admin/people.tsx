@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowsClockwise, CaretLeft, CaretRight, Check, Copy, MagnifyingGlass, X } from "@phosphor-icons/react";
+import { ArrowsClockwise, CaretLeft, CaretRight, Check, Copy, MagnifyingGlass, Phone, WhatsappLogo, X } from "@phosphor-icons/react";
 import { ApplicantPerson, PeopleData, SaathiPerson, UserPerson } from "./types";
 import { ago, dateTime, inr, mins, num } from "./format";
 import { Pill } from "./ui";
@@ -214,7 +214,8 @@ function Row({ item, onOpen }: { item: Item; onOpen: () => void }) {
   const isApplicant = item.kind === "applicants";
   const loginCode = item.kind === "users" ? null : (item.raw as SaathiPerson).login_code;
   return (
-    <button onClick={onOpen} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-linen-100 sm:px-4">
+    <div className="flex items-center hover:bg-linen-100">
+    <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-3 pr-2 text-left sm:pl-4">
       <Avatar src={item.photos[0]} name={item.name} size={52} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -243,6 +244,47 @@ function Row({ item, onOpen }: { item: Item; onOpen: () => void }) {
       </div>
       <CaretRight size={16} className="shrink-0 text-dusk-400" />
     </button>
+    {item.kind !== "users" && <ContactButtons item={item} className="shrink-0 pr-3 sm:pr-4" />}
+    </div>
+  );
+}
+
+/** Digits only, with India's +91 assumed for bare 10-digit numbers. */
+function dialNumber(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let d = raw.replace(/\D/g, "");
+  if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
+  if (d.length === 10) d = "91" + d;
+  return d.length >= 11 ? d : null;
+}
+
+function ContactButtons({ item, className = "" }: { item: Item; className?: string }) {
+  const wa = (item.raw as SaathiPerson | ApplicantPerson).whatsapp;
+  const call = dialNumber(item.phone);
+  const chat = dialNumber(wa) ?? call;
+  const base = "grid h-9 w-9 place-items-center rounded-full border";
+  const off = "pointer-events-none border-linen-200 text-dusk-400/50";
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <a
+        href={call ? `tel:+${call}` : undefined}
+        aria-label={`Call ${item.name}`}
+        title={call ? `Call +${call}` : "No phone number"}
+        className={`${base} ${call ? "border-sage-300 bg-sage-400/10 text-sage-600" : off}`}
+      >
+        <Phone size={17} weight="fill" />
+      </a>
+      <a
+        href={chat ? `https://wa.me/${chat}` : undefined}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`WhatsApp ${item.name}`}
+        title={chat ? `WhatsApp +${chat}` : "No number"}
+        className={`${base} ${chat ? "border-[#25D366]/40 bg-[#25D366]/10 text-[#128C7E]" : off}`}
+      >
+        <WhatsappLogo size={18} weight="fill" />
+      </a>
+    </div>
   );
 }
 
@@ -319,6 +361,7 @@ function Detail({ item, onClose, onPhoto }: { item: Item; onClose: () => void; o
             <div className="min-w-0">
               <h2 className="truncate text-[20px] font-semibold text-dusk-900">{item.name}</h2>
               <p className="text-[14px] text-dusk-700">{item.phone ?? "No phone"}</p>
+              {item.kind !== "users" && <ContactButtons item={item} className="mt-2" />}
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 <CopyCode label="ID" value={item.code} />
                 {(item.raw as SaathiPerson).login_code && (
