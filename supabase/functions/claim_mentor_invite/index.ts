@@ -25,8 +25,29 @@ Deno.serve(async (req) => {
     .eq("access_code", accessCode)
     .single();
 
-  if (inviteError || !invite || invite.status !== "unclaimed") {
-    return json({ error: "This code isn't valid or has already been used." }, { status: 400 });
+  if (inviteError || !invite) {
+    return json({ error: "This code isn't valid." }, { status: 400 });
+  }
+
+  // Signing back in: an already-claimed code works again for the same phone
+  // number, and returns the existing Saathi instead of creating a new one.
+  if (invite.status === "claimed") {
+    if (!invite.claimed_by_user_id || !invite.phone || invite.phone !== phone) {
+      return json(
+        { error: "This code isn't linked to that phone number. Double-check and try again." },
+        { status: 400 }
+      );
+    }
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", invite.claimed_by_user_id)
+      .maybeSingle();
+    return json({ userId: invite.claimed_by_user_id, name: prof?.display_name ?? invite.prefill_name ?? null });
+  }
+
+  if (invite.status !== "unclaimed") {
+    return json({ error: "This code isn't valid." }, { status: 400 });
   }
 
   // Older invites (or ones an admin didn't pin to a phone) skip this check —
