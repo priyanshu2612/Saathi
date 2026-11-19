@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Timer, VideoCamera } from "@phosphor-icons/react";
+import { ChatCircleDots, Timer, VideoCamera } from "@phosphor-icons/react";
 import { useAppState } from "@/lib/store";
 import { isDemoMode } from "@/lib/supabase/client";
 import { getMentorId, IncomingCall, pollIncomingCalls, respondToCall } from "@/lib/data/backend";
 import { useRingtone } from "@/lib/useRingtone";
+import { useChatInbox } from "@/lib/useChatInbox";
 import { seekerAvatarUrl } from "@/lib/format";
 
 /**
@@ -48,6 +49,21 @@ export default function SaathiIncomingCall() {
     };
   }, [active]);
 
+  // New chat messages from seekers: a banner on any screen except the chat itself.
+  const inbox = useChatInbox(getMentorId(), active && !pathname.startsWith("/partner/chat"));
+  const [seen, setSeen] = useState<Record<string, string>>({});
+  const newChat = inbox.find((c) => {
+    const key = c.last?.id ?? "start";
+    if (seen[c.id] === key) return false;
+    if (c.last?.mine) return false;
+    const at = new Date(c.last?.createdAt ?? c.startedAt).getTime();
+    return now - at < 2 * 60 * 1000;
+  });
+  const openChat = (id: string, key: string) => {
+    setSeen((p) => ({ ...p, [id]: key }));
+    router.push(`/partner/chat/${id}`);
+  };
+
   const incoming = calls[0];
   useRingtone(Boolean(incoming), incoming ? `${incoming.seekerName} is calling` : "Incoming call");
 
@@ -71,6 +87,23 @@ export default function SaathiIncomingCall() {
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] mx-auto w-full max-w-[430px] px-3 pt-3">
       {error && !incoming && (
         <p className="pointer-events-auto rounded-xl2 bg-card p-3 text-[13px] text-warmth-600 shadow-lg">{error}</p>
+      )}
+      {!incoming && newChat && (
+        <button
+          onClick={() => openChat(newChat.id, newChat.last?.id ?? "start")}
+          className="pointer-events-auto flex w-full items-center gap-3 rounded-xl2 border border-warmth-500/30 bg-warmth-50 p-3.5 text-left shadow-xl"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warmth-500/15 text-warmth-600">
+            <ChatCircleDots size={20} weight="fill" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-semibold text-dusk-900">{newChat.seekerName}</span>
+            <span className="block truncate text-[13px] text-dusk-700">
+              {newChat.last?.body ?? "Started a chat with you"}
+            </span>
+          </span>
+          <span className="rounded-full bg-warmth-500 px-3.5 py-1.5 text-[12px] font-medium text-white">Reply</span>
+        </button>
       )}
       {incoming && (
         <div className="pointer-events-auto rounded-xl2 border border-warmth-500/30 bg-warmth-50 p-4 shadow-xl">

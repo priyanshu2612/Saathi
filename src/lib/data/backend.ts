@@ -414,6 +414,30 @@ export async function sendCallChat(
   return message;
 }
 
+export async function pollCallChat(
+  userId: string,
+  sessionId: string,
+  after?: string
+): Promise<{ messages: CallChatMessage[]; status: string }> {
+  return invoke("session_chat", { action: "list", userId, sessionId, after });
+}
+
+export interface ChatInboxItem {
+  id: string;
+  seekerName: string;
+  startedAt: string;
+  last: CallChatMessage | null;
+}
+
+/** A Saathi's live chat sessions, newest first. */
+export async function getChatInbox(userId: string): Promise<ChatInboxItem[]> {
+  const { chats } = await invoke<{ chats: ChatInboxItem[] }>("session_chat", {
+    action: "inbox",
+    userId,
+  });
+  return chats;
+}
+
 const PROFILE_FIELD_MAP: Record<keyof MentorProfileDraft, string> = {
   name: "", // display_name lives on `profiles`, not editable here yet
   tagline: "tagline",

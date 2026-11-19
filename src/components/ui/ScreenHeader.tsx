@@ -15,7 +15,7 @@ export default function ScreenHeader({ title, onBack, right, transparent }: Prop
   return (
     <div
       className={`flex items-center justify-between px-5 py-4 ${
-        transparent ? "" : "bg-linen-50"
+        transparent ? "" : "sticky top-0 z-20 bg-linen-50"
       }`}
     >
       <button

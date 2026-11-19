@@ -79,7 +79,8 @@ body {
   .app-frame {
     min-height: calc(100vh - 64px);
     border-radius: 32px;
-    overflow: hidden;
+    /* clip (not hidden) so sticky headers and tab bars still pin to the viewport */
+    overflow: clip;
     box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.35);
   }
 }

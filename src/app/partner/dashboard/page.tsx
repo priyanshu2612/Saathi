@@ -6,6 +6,8 @@ import { Coins, Gear, ChatCircleDots, Phone, VideoCamera, Timer } from "@phospho
 import { useAppState } from "@/lib/store";
 import { isDemoMode } from "@/lib/supabase/client";
 import { primeRingtone } from "@/lib/useRingtone";
+import { getMentorId } from "@/lib/data/backend";
+import { useChatInbox } from "@/lib/useChatInbox";
 import {
   DailyTargetCard,
   DayDashboardCard,
@@ -35,6 +37,8 @@ export default function MentorDashboardPage() {
     simulateEarning,
   } = useAppState();
 
+
+  const chats = useChatInbox(isDemoMode ? null : getMentorId(), mentorOnline);
 
   const handleAccept = () => {
     simulateEarning(mentorProfile.rateChat * 6);
@@ -120,6 +124,33 @@ export default function MentorDashboardPage() {
             : "Go online to start your first conversation."}
         </p>
       </div>
+
+      {chats.length > 0 && (
+        <div className="mx-5 mt-5 rounded-xl2 bg-linen-100 p-4">
+          <div className="flex items-center gap-2 text-dusk-700">
+            <ChatCircleDots size={18} weight="fill" className="text-warmth-500" />
+            <span className="text-[14px] font-semibold">Chats</span>
+          </div>
+          <ul className="mt-3 flex flex-col gap-2">
+            {chats.map((c) => (
+              <li key={c.id}>
+                <button
+                  onClick={() => router.push(`/partner/chat/${c.id}`)}
+                  className="flex w-full items-center gap-3 rounded-xl2 bg-card p-3 text-left"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[14px] font-medium text-dusk-900">{c.seekerName}</span>
+                    <span className="block truncate text-[12px] text-dusk-500">
+                      {c.last ? `${c.last.mine ? "You: " : ""}${c.last.body}` : "No messages yet"}
+                    </span>
+                  </span>
+                  <span className="text-[12px] font-medium text-warmth-500">Open</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {isDemoMode && mentorOnline && (
         <div className="mx-5 mt-5 rounded-xl2 border border-warmth-500/30 bg-warmth-50 p-4">

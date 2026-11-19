@@ -12,6 +12,9 @@ import {
 } from "@phosphor-icons/react";
 import { useSessionBilling } from "@/lib/useSessionBilling";
 import { useAppState } from "@/lib/store";
+import { isDemoMode } from "@/lib/supabase/client";
+import { getSeekerId } from "@/lib/data/backend";
+import { useChatThread } from "@/lib/useChatThread";
 import { ChatMessage, Mentor, SessionMode, SessionRecord } from "@/lib/types";
 
 const MENTOR_REPLIES = [
@@ -31,7 +34,7 @@ export default function ChatSession({
 }) {
   const router = useRouter();
   const { coinBalance } = useAppState();
-  const { elapsedSeconds, charged, ended, showLowBalance, endNow } = useSessionBilling(
+  const { elapsedSeconds, ended, showLowBalance, endNow } = useSessionBilling(
     session,
     mentor
   );
@@ -42,7 +45,20 @@ export default function ChatSession({
   );
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Real mode: a live thread with the Saathi. Demo mode keeps scripted replies.
+  const thread = useChatThread(getSeekerId(), session.id, !isDemoMode);
+  const shown: ChatMessage[] = isDemoMode
+    ? messages
+    : thread.messages.map((m) => ({
+        id: m.id,
+        sender: m.mine ? "seeker" : "mentor",
+        text: m.body,
+        createdAt: m.createdAt,
+      }));
+  const saathiEnded = !isDemoMode && thread.status !== "active" && !ended;
+
   useEffect(() => {
+    if (!isDemoMode) return;
     setMessages([
       {
         id: "m-intro",
@@ -56,13 +72,19 @@ export default function ChatSession({
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [shown.length]);
 
   const minutes = Math.floor(elapsedSeconds / 60);
   const secs = elapsedSeconds % 60;
 
-  const handleSend = () => {
-    if (!draft.trim() || ended) return;
+  const handleSend = async () => {
+    if (!draft.trim() || ended || saathiEnded) return;
+    if (!isDemoMode) {
+      const text = draft.trim();
+      setDraft("");
+      if (!(await thread.send(text))) setDraft(text);
+      return;
+    }
     const seekerMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
       sender: "seeker",
@@ -99,7 +121,7 @@ export default function ChatSession({
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-linen-50">
+    <div className="flex h-[100dvh] flex-col bg-linen-50">
       <div className="flex items-center justify-between border-b border-linen-200 px-4 py-3">
         <div className="flex items-center gap-2.5">
           <div className="relative h-9 w-9 overflow-hidden rounded-full">
@@ -108,7 +130,7 @@ export default function ChatSession({
           <div>
             <p className="text-[14px] font-semibold text-dusk-900">{mentor.name}</p>
             <p className="text-[11px] text-dusk-400">
-              {minutes}:{secs.toString().padStart(2, "0")} · {charged} coins used
+              {minutes}:{secs.toString().padStart(2, "0")}
             </p>
           </div>
         </div>
@@ -145,6 +167,18 @@ export default function ChatSession({
       {ended && (
         <div className="mx-4 mt-3 rounded-xl2 bg-warmth-50 p-3 text-center text-[13px] text-warmth-700">
           Your balance ran out, so we ended the conversation here. Top up in Wallet to keep talking.
+          <button
+            onClick={() => router.push(`/session/${session.id}/rate`)}
+            className="tap-target mt-2 block w-full rounded-full bg-warmth-500 py-2 text-[13px] font-medium text-white"
+          >
+            Rate this conversation
+          </button>
+        </div>
+      )}
+
+      {saathiEnded && (
+        <div className="mx-4 mt-3 rounded-xl2 bg-linen-100 p-3 text-center text-[13px] text-dusk-700">
+          {mentor.name} ended the chat.
           <button
             onClick={() => router.push(`/session/${session.id}/rate`)}
             className="tap-target mt-2 block w-full rounded-full bg-warmth-500 py-2 text-[13px] font-medium text-white"
@@ -197,7 +231,12 @@ export default function ChatSession({
       )}
 
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {messages.map((m) => (
+        {shown.length === 0 && !isDemoMode && (
+          <p className="pt-10 text-center text-[13px] text-dusk-400">
+            Say hi to {mentor.name}. They&apos;ll reply here.
+          </p>
+        )}
+        {shown.map((m) => (
           <div
             key={m.id}
             className={`flex ${m.sender === "seeker" ? "justify-end" : "justify-start"}`}
@@ -221,13 +260,13 @@ export default function ChatSession({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            disabled={ended}
+            disabled={ended || saathiEnded}
             placeholder="Type how you're feeling…"
             className="flex-1 rounded-full border border-linen-200 bg-white px-4 py-3 text-[14px] text-dusk-900 outline-none focus:border-warmth-500 disabled:opacity-50"
           />
           <button
             onClick={handleSend}
-            disabled={ended || !draft.trim()}
+            disabled={ended || saathiEnded || !draft.trim()}
             className="tap-target flex h-11 w-11 items-center justify-center rounded-full bg-warmth-500 text-white disabled:opacity-40"
             aria-label="Send"
           >
