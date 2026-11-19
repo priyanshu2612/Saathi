@@ -143,7 +143,7 @@ export default function PartnerCallPage() {
     );
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-black text-white">
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-black text-white">
       <div className="absolute inset-0">
         {swapped ? selfView : seekerView}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/70" />

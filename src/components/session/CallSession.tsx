@@ -41,7 +41,7 @@ export default function CallSession({
   const [swapped, setSwapped] = useState(false);
   const [sentGift, setSentGift] = useState<{ gift: Gift; key: number } | null>(null);
   const isVideo = session.mode === "video";
-  const { elapsedSeconds, charged, ended, showLowBalance, endNow } = useSessionBilling(
+  const { elapsedSeconds, ended, showLowBalance, endNow } = useSessionBilling(
     session,
     mentor
   );
@@ -182,7 +182,7 @@ export default function CallSession({
   );
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-black text-white">
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-black text-white">
       <div className="absolute inset-0">
         {swapped && isVideo ? selfView : remoteView}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/70" />
@@ -192,7 +192,7 @@ export default function CallSession({
         <div>
           <p className="font-display text-[20px]">{mentor.name}</p>
           <p className="text-[13px] text-white/70">
-            {minutes}:{secs.toString().padStart(2, "0")} · {charged} coins used
+            {minutes}:{secs.toString().padStart(2, "0")}
           </p>
         </div>
         <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium">
