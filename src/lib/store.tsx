@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { markJustSignedUp } from "./welcomeCall";
 import { MOCK_MENTORS, FREE_TRIAL_COINS, firstRechargeBonus } from "./mock-data";
 import { Gift, saathiGiftCoins } from "./gifts";
 import { openCashfreeCheckout } from "./cashfree";
@@ -189,7 +190,7 @@ interface AppState extends PersistedState {
   ) => Promise<{ ok: boolean; error?: string }>;
   recordGiftReceived: (gift: ReceivedGift) => void;
   /** Buys a coin pack. Real mode goes through Cashfree; demo mode just credits the coins. */
-  purchasePack: (pack: CoinPack) => Promise<{ ok: boolean; error?: string }>;
+  purchasePack: (pack: CoinPack, opts?: { offer?: boolean }) => Promise<{ ok: boolean; error?: string }>;
   spendCoins: (amount: number, sessionId?: string) => Promise<boolean>;
   toggleTag: (tag: MoodTag) => void;
   setTags: (tags: MoodTag[]) => void;
@@ -363,6 +364,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           setSeekerId(account.userId);
           applyAccount(account);
         }
+        markJustSignedUp();
         return { ok: true };
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : "Could not create your account." };
@@ -461,16 +463,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, [state.transactions, addCoins]);
 
   const purchasePack = useCallback(
-    async (pack: CoinPack) => {
+    async (pack: CoinPack, opts?: { offer?: boolean }) => {
       if (isDemoMode) {
-        rechargeCoins(pack.coins);
+        rechargeCoins(pack.coins + (opts?.offer ? 50 : 0));
         return { ok: true };
       }
       try {
         const seekerId = getSeekerId();
         if (!seekerId) return { ok: false, error: "Sign in again to add coins." };
         const before = state.coinBalance;
-        const order = await createPaymentOrder(seekerId, pack.id);
+        const order = await createPaymentOrder(seekerId, pack.id, opts?.offer === true);
         await openCashfreeCheckout(order);
         // The webhook credits the coins a moment after the payment clears.
         for (let attempt = 0; attempt < 10; attempt++) {

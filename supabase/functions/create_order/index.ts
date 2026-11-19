@@ -7,13 +7,13 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { handleCors, json } from "../_shared/cors.ts";
-import { PACKS } from "../_shared/packs.ts";
+import { OFFER_MINUTES, OFFER_PAY_GRACE_MINUTES, PACKS } from "../_shared/packs.ts";
 
 Deno.serve(async (req) => {
   const preflight = handleCors(req);
   if (preflight) return preflight;
 
-  const { userId, packId } = await req.json();
+  const { userId, packId, offer } = await req.json();
   const pack = PACKS[packId as string];
   if (!userId || !pack) {
     return json({ error: "userId and a valid packId are required." }, { status: 400 });
@@ -40,6 +40,22 @@ Deno.serve(async (req) => {
     return json({ error: "Sign in again to add coins." }, { status: 400 });
   }
 
+  // The 5-minute offer: only tag the order if this seeker's offer is still
+  // running (plus a few minutes to finish paying) and hasn't been won yet.
+  // The webhook re-checks and credits the bonus once.
+  let offerTag = false;
+  if (offer === true) {
+    const { data: row } = await supabase
+      .from("recharge_offers")
+      .select("started_at, redeemed_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const deadline = row
+      ? new Date(row.started_at).getTime() + (OFFER_MINUTES + OFFER_PAY_GRACE_MINUTES) * 60_000
+      : 0;
+    offerTag = Boolean(row) && !row!.redeemed_at && Date.now() < deadline;
+  }
+
   const orderId = `sk_${packId}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
   const res = await fetch(`${apiBase}/pg/orders`, {
     method: "POST",
@@ -54,7 +70,12 @@ Deno.serve(async (req) => {
       order_amount: pack.priceInr,
       order_currency: "INR",
       customer_details: { customer_id: String(userId).replace(/[^A-Za-z0-9_-]/g, "_"), customer_phone: account.phone },
-      order_tags: { app: "sukoon", user_id: String(userId), pack_id: String(packId) },
+      order_tags: {
+        app: "sukoon",
+        user_id: String(userId),
+        pack_id: String(packId),
+        ...(offerTag ? { offer: "timer50" } : {}),
+      },
     }),
   });
   if (!res.ok) {

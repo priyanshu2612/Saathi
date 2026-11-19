@@ -22,6 +22,7 @@ import {
   packExtraCoins,
 } from "@/lib/mock-data";
 import { formatDateTime } from "@/lib/format";
+import { formatCountdown, useRechargeOffer } from "@/lib/useRechargeOffer";
 
 function average(values: number[]) {
   if (values.length === 0) return 0;
@@ -57,12 +58,14 @@ export default function WalletPage() {
   const [payNotice, setPayNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [buying, setBuying] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const offer = useRechargeOffer();
 
   const handleBuy = async (pack: (typeof COIN_PACKS)[number]) => {
     setBuying(pack.id);
     setPayNotice(null);
-    const result = await purchasePack(pack);
+    const result = await purchasePack(pack, { offer: offer.active });
     setBuying(null);
+    offer.refresh();
     if (!result.ok) setPayNotice({ ok: false, text: result.error ?? "Payment failed." });
     else setPayNotice({ ok: true, text: result.error ?? `${pack.coins} coins added.` });
   };
@@ -132,6 +135,18 @@ export default function WalletPage() {
 
       <div className="mt-6 px-5">
         <h2 className="text-[20px] font-bold text-dusk-900">Add more time</h2>
+        {offer.active && (
+          <div className="mt-3 flex items-center gap-3 rounded-xl2 bg-gradient-to-br from-warmth-400 to-warmth-700 p-3.5 text-white">
+            <Timer size={28} weight="fill" className="shrink-0" />
+            <div>
+              <p className="text-[14px] font-semibold">
+                +{offer.bonusCoins} bonus coins · ends in{" "}
+                <span className="tabular-nums">{formatCountdown(offer.secondsLeft)}</span>
+              </p>
+              <p className="text-[12.5px] text-white/90">Recharge any pack before the timer runs out. One time only.</p>
+            </div>
+          </div>
+        )}
         {isFirstRecharge && (
           <div className="mt-3 flex items-center gap-3 rounded-xl2 bg-warmth-50 p-3.5">
             <Image src="/gifts/surprise-box.png" alt="" width={56} height={56} className="h-14 w-14 shrink-0 object-contain" />

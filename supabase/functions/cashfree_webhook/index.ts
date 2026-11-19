@@ -5,7 +5,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { createHmac } from "node:crypto";
-import { FIRST_RECHARGE_BONUS_PCT, PACKS } from "../_shared/packs.ts";
+import { FIRST_RECHARGE_BONUS_PCT, OFFER_BONUS_COINS, PACKS } from "../_shared/packs.ts";
 
 Deno.serve(async (req) => {
   const rawBody = await req.text();
@@ -74,9 +74,32 @@ Deno.serve(async (req) => {
     });
   }
 
+  // "Recharge within 5 minutes" offer: the order was tagged by create_order
+  // while the offer was live. Stamping redeemed_at only succeeds once, so
+  // the 50 coins can't be won twice.
+  let offerBonus = 0;
+  if (order.order_tags?.offer === "timer50") {
+    const { data: won } = await supabase
+      .from("recharge_offers")
+      .update({ redeemed_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .is("redeemed_at", null)
+      .select("user_id")
+      .maybeSingle();
+    if (won) {
+      offerBonus = OFFER_BONUS_COINS;
+      await supabase.from("coin_transactions").insert({
+        user_id: userId,
+        amount: offerBonus,
+        type: "bonus",
+        description: "5-minute offer bonus",
+      });
+    }
+  }
+
   await supabase.rpc("increment_wallet_balance", {
     p_user_id: userId,
-    p_amount: pack.coins + bonus,
+    p_amount: pack.coins + bonus + offerBonus,
   });
 
   return Response.json({ ok: true });

@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       .limit(50),
     supabase
       .from("sessions")
-      .select("id, seeker_id, mentor_id, mode, started_at, ended_at, total_coins_charged, status, rate_per_minute")
+      .select("id, seeker_id, mentor_id, mode, started_at, ended_at, total_coins_charged, status, rate_per_minute, topic_category")
       .or(`seeker_id.eq.${userId},mentor_id.eq.${userId}`)
       .in("status", ["active", "completed", "disputed"])
       .order("started_at", { ascending: false })

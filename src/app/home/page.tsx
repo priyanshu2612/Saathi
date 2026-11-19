@@ -7,6 +7,7 @@ import CoinBadge from "@/components/ui/CoinBadge";
 import Logo from "@/components/ui/Logo";
 import BottomNav from "@/components/ui/BottomNav";
 import { PopularGridCard, MentorListCard } from "@/components/mentor/MentorCard";
+import ConfidenceCard from "@/components/seeker/ConfidenceCard";
 import HomeBannerCarousel from "@/components/home/HomeBannerCarousel";
 import { MOOD_TAGS } from "@/lib/types";
 import { HomeFilter, useAppState } from "@/lib/store";
@@ -113,6 +114,8 @@ export default function HomePage() {
       <div className="mt-4">
         <HomeBannerCarousel />
       </div>
+
+      <ConfidenceCard onTalk={() => setHomeFilter("all")} />
 
       <button
         onClick={recordCheckIn}

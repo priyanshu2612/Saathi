@@ -291,8 +291,23 @@ export interface PaymentOrder {
   mode: "sandbox" | "production";
 }
 
-export async function createPaymentOrder(userId: string, packId: string): Promise<PaymentOrder> {
-  return invoke("create_order", { userId, packId });
+export interface RechargeOffer {
+  active: boolean;
+  secondsLeft: number;
+  bonusCoins: number;
+}
+
+/** Starts (first call) or reads the seeker's one-time 5-minute recharge offer. */
+export function getRechargeOffer(userId: string): Promise<RechargeOffer> {
+  return invoke<RechargeOffer>("seeker_offer", { userId });
+}
+
+export async function createPaymentOrder(
+  userId: string,
+  packId: string,
+  offer = false
+): Promise<PaymentOrder> {
+  return invoke("create_order", { userId, packId, offer });
 }
 
 export async function trackFunnelStep(visitorId: string, step: number): Promise<void> {
@@ -334,6 +349,7 @@ export async function getAccount(
       total_coins_charged: number;
       status: string;
       rate_per_minute: number;
+      topic_category?: TopicCategory | null;
       seeker_name?: string;
     }[];
   }>("get_account", { userId });
@@ -357,6 +373,7 @@ export async function getAccount(
       status: s.status === "completed" ? "completed" : "active",
       totalCoinsCharged: s.total_coins_charged,
       ratePerMinute: s.rate_per_minute,
+      topicCategory: s.topic_category ?? undefined,
       seekerName: s.seeker_name,
     })),
   };

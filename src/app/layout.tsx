@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppStateProvider } from "@/lib/store";
 import { ThemeProvider, NO_FLASH_THEME_SCRIPT } from "@/lib/theme";
 import AuthGate from "@/components/auth/AuthGate";
+import SeekerEngagement from "@/components/seeker/SeekerEngagement";
 import { ToastProvider } from "@/components/ui/Toast";
 
 const inter = Inter({
@@ -48,6 +49,7 @@ export default function RootLayout({
               <AppStateProvider>
                 <ToastProvider>
                   <AuthGate>{children}</AuthGate>
+                  <SeekerEngagement />
                 </ToastProvider>
               </AppStateProvider>
             </div>
