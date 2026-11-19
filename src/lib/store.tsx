@@ -265,6 +265,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     const mentorId = getMentorId();
     if (!mentorId) return;
     const beat = () => mentorHeartbeat(mentorId).catch(() => {});
+    // The screen can say "online" (saved on this device) while the server flag
+    // is still off, e.g. after signing in again or a failed toggle. Re-assert it
+    // so Seekers see the Saathi as online.
+    setMentorOnlineRemote(mentorId, true).catch(() => {});
     beat();
     const timer = setInterval(beat, 30_000);
     return () => clearInterval(timer);
