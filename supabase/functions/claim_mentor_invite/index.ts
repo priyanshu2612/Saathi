@@ -65,6 +65,9 @@ Deno.serve(async (req) => {
     photo_url: invite.prefill_photos?.[0] ?? null,
     photos: invite.prefill_photos ?? [],
     verification_status: "approved",
+    // Default call rates (coins/min); chat is free.
+    rate_audio: 16,
+    rate_video: 28,
   });
 
   await supabase.from("wallets").insert({ user_id: userId, coin_balance: 0 });
