@@ -271,7 +271,18 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setMentorOnlineRemote(mentorId, true).catch(() => {});
     beat();
     const timer = setInterval(beat, 30_000);
-    return () => clearInterval(timer);
+    // Phones pause timers in the background; if the server took this Saathi
+    // offline meanwhile, put them back as soon as they return to the app.
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      setMentorOnlineRemote(mentorId, true).catch(() => {});
+      beat();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [hydrated, state.mentorOnline]);
 
   useEffect(() => {
