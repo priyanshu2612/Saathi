@@ -280,17 +280,19 @@ function dialNumber(raw: string | null | undefined): string | null {
 function welcomeMessage(name: string, code: string) {
   const first = name.trim().split(/\s+/)[0] || "there";
   return [
-    `Hi ${first}, we are excited to have you onboard after shortlisting! 🎉`,
+    `Hi ${first}, shortlist hone ke baad Sukoon family mein aapka swagat hai! 🎉`,
     "",
-    `Your login access code is: ${code}`,
-    "Log in with your phone number and this code here: trysukoon.co/saathi",
+    `Aapka login access code hai: ${code}`,
+    "Apne phone number aur is code se yahan login kijiye: trysukoon.co/saathi",
     "",
-    "A few tips for getting started:",
-    "• Stay online as much as you can. The more you're available, the more people you can help (and earn).",
-    "• Talk nicely and listen first. Be warm, patient and respectful.",
-    "• Motivate people. Whatever situation they're in, help them feel heard and more confident.",
+    "Shuru karne ke liye kuch tips:",
+    "• Zyada se zyada online rahiye. Jitna zyada online rahenge, utne zyada log aap tak pahunchenge aur utni zyada kamayi hogi.",
+    "• Pyaar se baat kijiye aur pehle dhyaan se suniye. Shaant, patient aur respectful rahiye.",
+    "• Logon ko motivate kijiye. Jo bhi situation ho, unhe feel karaiye ki unhe suna ja raha hai aur unka confidence badhaiye.",
     "",
-    "If you need any help, just message us here. Welcome to Sukoon! 🙏",
+    "Aap ek hafte mein 10,000 rupaye tak kama sakte hain! 💰",
+    "",
+    "Koi bhi help chahiye ho toh yahin message kijiye. Welcome to Sukoon! 🙏",
   ].join("\n");
 }
 
