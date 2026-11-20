@@ -276,10 +276,32 @@ function dialNumber(raw: string | null | undefined): string | null {
   return d.length >= 11 ? d : null;
 }
 
+// Welcome message sent to a shortlisted Saathi, with their login code.
+function welcomeMessage(name: string, code: string) {
+  const first = name.trim().split(/\s+/)[0] || "there";
+  return [
+    `Hi ${first}, we are excited to have you onboard after shortlisting! 🎉`,
+    "",
+    `Your login access code is: ${code}`,
+    "Log in with your phone number and this code here: trysukoon.co/saathi",
+    "",
+    "A few tips for getting started:",
+    "• Stay online as much as you can. The more you're available, the more people you can help (and earn).",
+    "• Talk nicely and listen first. Be warm, patient and respectful.",
+    "• Motivate people. Whatever situation they're in, help them feel heard and more confident.",
+    "",
+    "If you need any help, just message us here. Welcome to Sukoon! 🙏",
+  ].join("\n");
+}
+
 function ContactButtons({ item, className = "" }: { item: Item; className?: string }) {
   const wa = (item.raw as SaathiPerson | ApplicantPerson).whatsapp;
   const call = dialNumber(item.phone);
   const chat = dialNumber(wa) ?? call;
+  const code = item.kind === "users" ? null : (item.raw as SaathiPerson | ApplicantPerson).login_code;
+  const waHref = chat
+    ? `https://wa.me/${chat}${code ? `?text=${encodeURIComponent(welcomeMessage(item.name, code))}` : ""}`
+    : undefined;
   const base = "grid h-9 w-9 place-items-center rounded-full border";
   const off = "pointer-events-none border-linen-200 text-dusk-400/50";
   return (
@@ -293,7 +315,7 @@ function ContactButtons({ item, className = "" }: { item: Item; className?: stri
         <Phone size={17} weight="fill" />
       </a>
       <a
-        href={chat ? `https://wa.me/${chat}` : undefined}
+        href={waHref}
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`WhatsApp ${item.name}`}
