@@ -287,7 +287,7 @@ function welcomeMessage(name: string, code: string) {
     "",
     "Shuru karne ke liye kuch tips:",
     "• Zyada se zyada online rahiye. Jitna zyada online rahenge, utne zyada log aap tak pahunchenge aur utni zyada kamayi hogi.",
-    "• Pyaar se baat kijiye aur pehle dhyaan se suniye. Shaant, patient aur respectful rahiye.",
+    "• Mann se baat kijiye aur pehle dhyaan se suniye. Shaant, patient aur respectful rahiye.",
     "• Logon ko motivate kijiye. Jo bhi situation ho, unhe feel karaiye ki unhe suna ja raha hai aur unka confidence badhaiye.",
     "",
     "Aap ek hafte mein 10,000 rupaye tak kama sakte hain! 💰",
