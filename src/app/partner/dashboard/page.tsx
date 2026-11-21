@@ -54,6 +54,11 @@ export default function MentorDashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <div className="sticky top-0 z-30 border-b border-warmth-500/30 bg-warmth-50 px-4 py-2.5 text-center text-[12.5px] leading-snug text-warmth-700">
+        <span className="font-semibold">Notice:</span> There&apos;s a technical issue, so users aren&apos;t active
+        online yet. Please be online from <span className="font-semibold">Sunday 3 PM</span>. Sorry for the
+        inconvenience!
+      </div>
       <div className="flex items-center justify-between px-5 pt-6">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
