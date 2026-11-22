@@ -1,5 +1,7 @@
 "use client";
 
+import { SAATHI_APP_DOWN } from "@/lib/business";
+
 import {
   createContext,
   useCallback,
@@ -261,7 +263,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // While a Saathi is online, tell the server every 30s so today's online
   // time (daily target, leaderboard) keeps counting on every screen.
   useEffect(() => {
-    if (isDemoMode || !hydrated || !state.mentorOnline) return;
+    if (SAATHI_APP_DOWN || isDemoMode || !hydrated || !state.mentorOnline) return;
     const mentorId = getMentorId();
     if (!mentorId) return;
     const beat = () => mentorHeartbeat(mentorId).catch(() => {});

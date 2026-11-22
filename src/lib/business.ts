@@ -22,3 +22,6 @@ export const PAYOUT_DAYS = 3;
 
 /** A Saathi's daily goal: stay online at least this many seconds. */
 export const DAILY_ONLINE_TARGET_SECONDS = 2 * 60 * 60;
+
+/** While true, every Saathi screen is replaced by a "app is down" notice and Saathis can't go online. */
+export const SAATHI_APP_DOWN = true;

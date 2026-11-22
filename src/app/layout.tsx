@@ -6,6 +6,7 @@ import { ThemeProvider, NO_FLASH_THEME_SCRIPT } from "@/lib/theme";
 import AuthGate from "@/components/auth/AuthGate";
 import SeekerEngagement from "@/components/seeker/SeekerEngagement";
 import SaathiIncomingCall from "@/components/saathi/IncomingCall";
+import SaathiDowntime from "@/components/saathi/Downtime";
 import { ToastProvider } from "@/components/ui/Toast";
 
 const inter = Inter({
@@ -52,6 +53,7 @@ export default function RootLayout({
                   <AuthGate>{children}</AuthGate>
                   <SeekerEngagement />
                   <SaathiIncomingCall />
+                  <SaathiDowntime />
                 </ToastProvider>
               </AppStateProvider>
             </div>

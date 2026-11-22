@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChatCircleDots, Timer, VideoCamera } from "@phosphor-icons/react";
 import { useAppState } from "@/lib/store";
+import { SAATHI_APP_DOWN } from "@/lib/business";
 import { isDemoMode } from "@/lib/supabase/client";
 import { getMentorId, IncomingCall, pollIncomingCalls, respondToCall } from "@/lib/data/backend";
 import { useRingtone } from "@/lib/useRingtone";
@@ -23,7 +24,7 @@ export default function SaathiIncomingCall() {
   const [error, setError] = useState<string | null>(null);
 
   // Already on a call screen: don't ring over it.
-  const active = !isDemoMode && mentorOnline && !pathname.startsWith("/partner/call");
+  const active = !SAATHI_APP_DOWN && !isDemoMode && mentorOnline && !pathname.startsWith("/partner/call");
 
   useEffect(() => {
     if (!active) {
